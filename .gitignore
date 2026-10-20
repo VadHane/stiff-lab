@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scientific paper, its build toolchain and the methodology copy stay local (large, ~430 MB, not part of the site)
+/docs/
