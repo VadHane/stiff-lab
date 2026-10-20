@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Лаб — числові методи для жорстких систем
 
-## Getting Started
+Інтерактивні сторінки до 18 задач розділу 12 «Числові методи розв'язування жорстких систем»: розв'язувачі (явний і неявний Ейлер, RK4, θ-метод, трапеції, BDF2, DOPRI5(4), Розенброк 2(3)), графіки з різними параметрами, режим «Просто / Науково», покроковий дебагер методу, фазовий портрет, квізи і генератор звіту до лабораторної.
 
-First, run the development server:
+Усі обчислення виконуються в браузері, сервер не потрібен: сайт збирається як статичний.
+
+## Локальний запуск
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Відкрийте http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Збирання
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+```
 
-## Learn More
+Готовий сайт записується в теку `out/` (`output: "export"` у `next.config.ts`). Її можна віддавати будь-яким статичним сервером.
 
-To learn more about Next.js, take a look at the following resources:
+## Деплой на GitHub Pages
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Деплой виконує workflow `.github/workflows/deploy.yml` під час кожного пушу в `main`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Створіть репозиторій на GitHub і запуште в нього гілку `main`.
+2. У репозиторії відкрийте Settings → Pages і в полі Source виберіть «GitHub Actions».
+3. Дочекайтеся завершення workflow у вкладці Actions. Сайт з'явиться за адресою `https://<логін>.github.io/<репозиторій>/`.
 
-## Deploy on Vercel
+Префікс шляху (`basePath`) workflow бере з налаштувань Pages через змінну `PAGES_BASE_PATH`, тому назву репозиторію можна вибрати будь-яку. Локально префікса немає.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Тека `docs/` (наукова робота, скрипти її збирання, копія методички) не входить у репозиторій: її виключено в `.gitignore`.
