@@ -19,17 +19,19 @@ import { Say } from "@/components/mode/Mode";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
 
-type OneStep = "euler" | "ieuler" | "theta" | "trap" | "rk4";
+type OneStep = "euler" | "ieuler" | "theta" | "trap" | "rk2" | "rk3" | "rk4";
 const RF: Record<OneStep, (z: number) => number> = {
   euler: (z) => 1 + z,
   ieuler: (z) => 1 / (1 - z),
   theta: (z) => (1 + 0.45 * z) / (1 - 0.55 * z),
   trap: (z) => (1 + 0.5 * z) / (1 - 0.5 * z),
+  rk2: (z) => 1 + z + (z * z) / 2,
+  rk3: (z) => 1 + z + (z * z) / 2 + (z * z * z) / 6,
   rk4: (z) => 1 + z + (z * z) / 2 + (z * z * z) / 6 + (z * z * z * z) / 24,
 };
 const isOne = (m: MethodId): m is OneStep => m in RF;
 
-const ALL: MethodId[] = ["euler", "ieuler", "theta", "trap", "rk4", "bdf2"];
+const ALL: MethodId[] = ["euler", "ieuler", "theta", "trap", "rk2", "rk3", "rk4", "bdf2"];
 const BOOK: OneStep[] = ["euler", "ieuler", "theta"];
 const LAMS = [-1, -10, -20];
 const HS = [0.01, 0.05, 0.1, 0.2, 0.5];
@@ -143,7 +145,7 @@ export default function T4() {
     const ls = [-1, -2, -5, -10, -20, -50];
     const l = ls[Math.floor(Math.random() * ls.length)];
     const hh = Number(Math.pow(10, -2 + 2 * Math.random()).toPrecision(2));
-    const ms: OneStep[] = ["euler", "ieuler", "theta", "trap", "rk4"];
+    const ms: OneStep[] = ["euler", "ieuler", "theta", "trap", "rk2", "rk3", "rk4"];
     setLam(l);
     setH(hh);
     setGm(ms[Math.floor(Math.random() * ms.length)]);
@@ -323,7 +325,7 @@ export default function T4() {
                   { x: [-40, 0], y: [1, 1], color: "#ffffff55", width: 1, dash: [4, 4], noRange: true },
                   { x: [-40, 0], y: [-1, -1], color: "#ffffff55", width: 1, dash: [4, 4], noRange: true },
                   { x: rCurve.zs, y: rCurve.ex, color: "#ffffff", label: "eᶻ", width: 3, opacity: 0.4 },
-                  ...(["euler", "ieuler", "theta", "trap", "rk4"] as OneStep[]).map((m) => ({
+                  ...(["euler", "ieuler", "theta", "trap", "rk2", "rk3", "rk4"] as OneStep[]).map((m) => ({
                     x: rCurve.zs,
                     y: rCurve.r[m],
                     color: METHODS[m].color,
@@ -541,7 +543,7 @@ export default function T4() {
       <Section kicker="Чому так?" title="Область стійкості і точка z = hλ" simpleTitle="Карта «вибухне чи ні»">
         <Card>
           <StabilityExplorer
-            methods={["euler", "ieuler", "theta", "trap", "rk4", "bdf2"]}
+            methods={["euler", "ieuler", "theta", "trap", "rk2", "rk3", "rk4", "bdf2"]}
             z={[Math.max(z, -1.8 * range), 0]}
             onZ={(zz) => {
               const nz = Math.min(-1e-3, zz[0]);
@@ -573,12 +575,13 @@ export default function T4() {
                 <>
                   Сірі рисочки — «поле нахилів»: куди тягне рівняння в кожній точці (для λ = −20 — дуже круто до нуля). Явний Ейлер з h = 0.15 бере нахил на
                   старті й іде по ньому весь крок — і перелітає нуль: 1 → −2 → 4 → … Неявний Ейлер бере нахил у кінці кроку і не перелітає: 1 → 0.25 → 0.06 → …
-                  Спробуйте й RK4: при такому кроці він теж вибухає, хоч і без зміни знака.
+                  Спробуйте й RK2, RK3, RK4: при такому кроці вони теж вибухають (RK2 і RK4 — без зміни знака, RK3 — зі зміною).
                 </>
               }
             >
-              Поле нахилів рівняння y′ = λy (вісь x — час). При λ = −20, h = 0.15 маємо z = −3: R<sub>Ейлер</sub> = −2 (вибух зі зміною знака), R<sub>RK4</sub> =
-              1.375 (монотонний вибух — z за межею −2.785), R<sub>неявн</sub> = 0.25, R<sub>θ</sub> = −0.132, R<sub>трап</sub> = −0.2. Пунктир — точний
+              Поле нахилів рівняння y′ = λy (вісь x — час). При λ = −20, h = 0.15 маємо z = −3: R<sub>Ейлер</sub> = −2 (вибух зі зміною знака), R<sub>RK2</sub> =
+              2.5 і R<sub>RK4</sub> = 1.375 (монотонний вибух — z за межами −2 і −2.785), R<sub>RK3</sub> = −2 (межа −2.513 теж позаду), R<sub>неявн</sub> = 0.25,
+              R<sub>θ</sub> = −0.132, R<sub>трап</sub> = −0.2. Пунктир — точний
               розв&apos;язок з (tₙ, yₙ) на [tₙ, tₙ + h].
             </Say>
           }

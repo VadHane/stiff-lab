@@ -19,7 +19,7 @@ import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
 
-const ALL: MethodId[] = ["euler", "rk4", "ieuler", "theta", "trap", "bdf2"];
+const ALL: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "theta", "trap", "bdf2"];
 const H_LIST = [0.01, 0.02, 0.05];
 const D0 = -0.5;
 const EPS0 = 0.01;
@@ -36,6 +36,8 @@ const exactOf = (d: number, eps: number) => {
 };
 const bookOf = (d: number, eps: number) => (t: number) => [Math.exp(d * t) + (eps * Math.exp(d * t) - Math.exp(-t / eps)) / (1 + d * eps), Math.exp(-t / eps)];
 
+const rk2R = (z: number) => 1 + z + (z * z) / 2;
+const rk3R = (z: number) => 1 + z + (z * z) / 2 + (z * z * z) / 6;
 const rk4R = (z: number) => 1 + z + (z * z) / 2 + (z * z * z) / 6 + (z * z * z * z) / 24;
 const thetaR = (z: number) => (1 + 0.45 * z) / (1 - 0.55 * z);
 const trapR = (z: number) => (1 + 0.5 * z) / (1 - 0.5 * z);
@@ -125,6 +127,8 @@ export default function T2() {
   const z = -dh / de;
   const eR = Math.abs(1 + z);
   const kR = Math.abs(rk4R(z));
+  const k2R = Math.abs(rk2R(z));
+  const k3R = Math.abs(rk3R(z));
   const ratio = 1 / (Math.abs(dd) * de);
 
   const tNow = tMin * Math.pow(T / tMin, pb.progress);
@@ -312,6 +316,11 @@ export default function T2() {
               <div className="rounded-xl bg-white/[0.04] p-3 text-[12.5px] text-white/65">
                 <Tex>{`h\\lambda_2 = -h/\\varepsilon = ${fmt(z, 4)}`}</Tex>. Крок проти товщини шару: <Tex>{`h/\\varepsilon=${fmt(-z, 3)}`}</Tex>
                 {-z > 1 ? " — шар коротший за один крок!" : " — шар розв'язується кроками."}
+                <div className="mt-1.5 text-white/55">
+                  Межі явних методів: Ейлер і RK2 — h/ε &lt; 2, RK3 — &lt; 2.51, RK4 — &lt; 2.79. Зараз RK2 |R| ={" "}
+                  <span className={k2R > 1 ? "text-[#ff5d73]" : "text-[#3ee6a8]"}>{fmt(k2R, 4)}</span>, RK3 |R| ={" "}
+                  <span className={k3R > 1 ? "text-[#ff5d73]" : "text-[#3ee6a8]"}>{fmt(k3R, 4)}</span>.
+                </div>
               </div>
             </>
           }
@@ -715,13 +724,16 @@ export default function T2() {
               <>
                 Для параметрів з умови через 0.05 (5ε) від вихору лишається 0.7 %, а через 1 одиницю часу — e<sup>−100</sup> ≈ 4·10⁻⁴⁴, тобто нічого. Проте
                 явний Ейлер з h = 0.05 вибухає: його стійкість визначає швидкий темп −100, а не те, що видно на графіку. З h = 0.02 він на самій межі —
-                похибка не росте, але й не зникає.
+                похибка не росте, але й не зникає. RK2 з тим самим кроком теж на межі (його множник рівно 1: залишок вихору не стрибає, а просто завмирає), а
+                RK3 і RK4 уже гасять його. З h = 0.05 вибухають усі чотири явні методи.
               </>
             }
           >
             Для параметрів з умови (ε = 0.01): через 0.05 с від <Tex>{"e^{-t/\\varepsilon}"}</Tex> лишається <Tex>{"e^{-5}\\approx0.007"}</Tex>, а через 1 с —{" "}
             <Tex>{"e^{-100}\\approx4\\cdot10^{-44}"}</Tex>. Проте явний Ейлер при h = 0.05 вибухає, бо стійкість визначає <Tex>{"\\lambda_2=-100"}</Tex>, а не те,
-            що бачимо на графіку. При h = 0.02 він рівно на межі: похибка не росте, але й не згасає.
+            що бачимо на графіку. При h = 0.02 він рівно на межі: похибка не росте, але й не згасає. RK2 при h = 0.02 має <Tex>{"R(-2)=1"}</Tex> — теж на межі,
+            тільки залишок швидкої моди не міняє знак, а «застигає»; RK3 і RK4 (<Tex>{"R(-2)=-1/3"}</Tex> і <Tex>{"1/3"}</Tex>) його вже гасять. При h = 0.05
+            (h/ε = 5) вибухають усі чотири явні методи.
           </Insight>
           <Insight
             tone="good"

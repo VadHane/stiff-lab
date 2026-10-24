@@ -128,7 +128,7 @@ export default function Home() {
                   </div>
                   <div className='ml-auto flex items-center gap-2'>
                     <TaskProgress id={t.id} />
-                    <span className='font-display text-[13px] text-[var(--accent)]'>№{t.num}</span>
+                    <span className='font-display whitespace-nowrap text-[13px] text-[var(--accent)]'>{t.label ?? `№${t.num}`}</span>
                   </div>
                 </div>
                 <div className='font-display mt-4 text-[17px] leading-snug text-white'>

@@ -20,7 +20,7 @@ import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
 
-const ALL: MethodId[] = ["euler", "rk4", "ieuler", "theta", "trap", "bdf2"];
+const ALL: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "theta", "trap", "bdf2"];
 const H_LIST = [0.005, 0.01, 0.02, 0.03, 0.05];
 
 interface Params {
@@ -213,6 +213,8 @@ export default function T21() {
   );
 
   const hE = hCrit("euler", lams);
+  const hR2 = hCrit("rk2", lams);
+  const hR3 = hCrit("rk3", lams);
   const hR = hCrit("rk4", lams);
   // h = 0.02 column of the table: who eats the oscillation and who is the best implicit method
   const col002 = table[H_LIST.indexOf(0.02)];
@@ -224,6 +226,8 @@ export default function T21() {
   const zMain: [number, number] = [dh * lams[0][0], dh * lams[0][1]];
   const zAlt: [number, number] = [dh * lams[1][0], dh * lams[1][1]];
   const eulerR = amp("euler", zMain);
+  const rk2R = amp("rk2", zMain);
+  const rk3R = amp("rk3", zMain);
   const rk4R = amp("rk4", zMain);
   const zoomR = Math.min(12, Math.max(1.5, Math.hypot(...zAlt) * 1.2));
 
@@ -335,14 +339,15 @@ export default function T21() {
               simple={
                 <p className="text-[14px] leading-relaxed text-white/75">
                   При h = 0.02 Ейлер щокроку множить амплітуду на ≈ 1.149 — додає 15 %, і машину «розгойдує до неба». RK4 множить на ≈ 0.923 — майже як
-                  справжнє e<sup>−0.08</sup> = 0.923. Неявні методи не вибухають, але кожен по-своєму спотворює згасання.
+                  справжнє e<sup>−0.08</sup> = 0.923 (RK2 — на ≈ 0.934, RK3 — на ≈ 0.914: не вибухають, але згасання передають гірше). Неявні методи не
+                  вибухають, але кожен по-своєму спотворює згасання.
                 </p>
               }
             >
             <p className="text-[14px] leading-relaxed text-white/75">
               При <Tex>{"h=0.02"}</Tex>: <Tex>{"|1+h\\lambda|\\approx1.149"}</Tex> — кожен крок підсилює коливання на 15 %, і машину «розгойдує до неба». RK4 має
-              більшу область стійкості (<Tex>{"|R|\\approx0.923"}</Tex>, майже як точне <Tex>{"e^{-0.08}=0.923"}</Tex>). Неявні методи стійкі, але кожен по-своєму
-              спотворює загасання.
+              більшу область стійкості (<Tex>{"|R|\\approx0.923"}</Tex>, майже як точне <Tex>{"e^{-0.08}=0.923"}</Tex>); RK2 і RK3 при цьому кроці теж стійкі (
+              <Tex>{"|R|\\approx0.934"}</Tex> і <Tex>{"0.914"}</Tex>), хоч і передають згасання гірше. Неявні методи стійкі, але кожен по-своєму спотворює загасання.
             </p>
             </Say>
             <div className="mt-2 grid grid-cols-2 gap-2">
@@ -382,7 +387,11 @@ export default function T21() {
                     : `\\lambda=${fmt(lams[0][0], 4)}${lams[0][1] ? `\\pm${fmt(Math.abs(lams[0][1]), 4)}i` : `,\\ ${fmt(lams[1][0], 4)}`}`}
                 </Tex>
                 {critical && " (кратне)"}. Межа стійкості:
-                Ейлер <Tex>{`h<${fmt(hE, 3)}`}</Tex>, RK4 <Tex>{`h<${fmt(hR, 3)}`}</Tex>.
+                Ейлер <Tex>{`h<${fmt(hE, 3)}`}</Tex>, RK2 <Tex>{`h<${fmt(hR2, 3)}`}</Tex>, RK3 <Tex>{`h<${fmt(hR3, 3)}`}</Tex>, RK4 <Tex>{`h<${fmt(hR, 3)}`}</Tex>.
+                <div className="mt-1 text-white/55">
+                  Зараз |R(hλ)|: RK2 = <span className={rk2R > 1 ? "text-[#ff5d73]" : "text-[#3ee6a8]"}>{fmt(rk2R, 4)}</span>, RK3 ={" "}
+                  <span className={rk3R > 1 ? "text-[#ff5d73]" : "text-[#3ee6a8]"}>{fmt(rk3R, 4)}</span>.
+                </div>
               </div>
             </>
           }
@@ -702,8 +711,8 @@ export default function T21() {
               }
             >
               Фазова площина (u, u′) для параметрів з умови. Для λ = −4 ± 34.4i явний Ейлер за крок h = 0.02 множить відстань до центру на |1 + hλ| ≈ 1.149 і
-              повертає на arg(1 + hλ) ≈ 37°: ~10 кроків на оберт, амплітуда росте ×4 за оберт. Для порівняння |R|: RK4 ≈ 0.923, неявний Ейлер ≈ 0.781, трапеції ≈
-              0.931 проти точного e^(−0.08) ≈ 0.923. Пунктир — точний розв&apos;язок з (tₙ, yₙ) на [tₙ, tₙ + h].
+              повертає на arg(1 + hλ) ≈ 37°: ~10 кроків на оберт, амплітуда росте ×4 за оберт. Для порівняння |R|: RK2 ≈ 0.934, RK3 ≈ 0.914, RK4 ≈ 0.923, неявний
+              Ейлер ≈ 0.781, трапеції ≈ 0.931 проти точного e^(−0.08) ≈ 0.923. Пунктир — точний розв&apos;язок з (tₙ, yₙ) на [tₙ, tₙ + h].
             </Say>
           }
         />
@@ -841,12 +850,15 @@ export default function T21() {
             simple={
               <>
                 Зона стійкості RK4 сягає вздовж уявної осі до ±2.83, тож |hλ| ≈ 0.69 для нього дрібниця, а 4-й порядок дає похибку ~3·10⁻³ (h = 0.02, параметри з
-                умови). Для слабко загасних коливань це часто найкращий вибір.
+                умови). RK3 (зона до ±1.73) теж стійкий, але промахується на ≈ 2·10⁻², а RK2, як і Ейлер, на уявній осі зони не має — його рятує лише справжнє
+                згасання (межа h ≈ 0.032), і промах уже ≈ 0.14, тобто 27 % амплітуди. Для слабко загасних коливань RK4 — часто найкращий вибір.
               </>
             }
           >
             Область стійкості RK4 сягає уявної осі до ±2.83, тож <Tex>{"|h\\lambda|\\approx0.69"}</Tex> для нього дрібниця, а 4-й порядок дає похибку ~3·10⁻³ (при
-            h = 0.02 для параметрів з умови). Для слабко загасних коливань це часто найкращий вибір.
+            h = 0.02 для параметрів з умови). RK3 (уявна вісь до ±√3 ≈ 1.73) при тому ж кроці стійкий, але з похибкою ≈ 2·10⁻²; RK2, як і Ейлер, не містить уявної
+            осі (|R(iy)|² = 1 + y⁴/4) і тримається лише завдяки Re λ = −4 (межа h ≈ 0.032) — його похибка ≈ 0.14 (27 % амплітуди). Для слабко загасних коливань RK4
+            — часто найкращий вибір.
           </Insight>
           <Insight
             tone="warn"

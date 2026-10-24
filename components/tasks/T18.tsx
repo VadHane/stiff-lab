@@ -13,7 +13,7 @@ import { fmt, fmtMs } from "@/lib/format";
 import { solveImplicit } from "@/lib/implicit-full-newton";
 import { eigenvalues } from "@/lib/linalg";
 import { METHODS } from "@/lib/methods";
-import { comp, sampleAt, solve, type MethodId, type Problem, type Solution } from "@/lib/ode";
+import { comp, isExplicit, sampleAt, solve, type MethodId, type Problem, type Solution } from "@/lib/ode";
 import { traceStep } from "@/lib/step-trace";
 import AnalogyCard from "@/components/analogy/AnalogyCard";
 import BlinkingFlaskScene from "@/components/analogy/BlinkingFlaskScene";
@@ -24,14 +24,15 @@ import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
 import { plural } from "@/lib/relatable";
 
-const ALL: MethodId[] = ["euler", "rk4", "ieuler", "trap", "theta", "bdf2", "dopri", "ros"];
+const ALL: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "trap", "theta", "bdf2", "dopri", "ros"];
 
 /** «у N разів» with the right Ukrainian form */
 function times(x: number) {
   const r = x >= 10 ? Math.round(x) : Math.round(x * 10) / 10;
   return `${r >= 1000 ? r.toLocaleString("uk-UA") : String(r)} ${Number.isInteger(r) ? plural(r, ["раз", "рази", "разів"]) : "раза"}`;
 }
-const FIXED_EXPLICIT: MethodId[] = ["euler", "rk4"];
+const FIXED_EXPLICIT: MethodId[] = ["euler", "rk2", "rk3", "rk4"];
+const TABLE_FIXED: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "trap", "theta", "bdf2"];
 
 // stable references for the debugger (A = 50, B = 80) and the playground (A = 1, B = 3)
 const F_DBG = (_t: number, y: number[]) => {
@@ -106,7 +107,7 @@ const effectiveH = (h: number, T: number) => Math.max(h, T / 40000);
 
 function run(m: MethodId, p: Problem, h: number, tol: number): Solution {
   const hh = effectiveH(h, p.T);
-  if (m === "euler" || m === "rk4") return solve(m, p, { h: hh, blowup: 1e6 });
+  if (isExplicit(m)) return solve(m, p, { h: hh, blowup: 1e6 });
   if (m === "ieuler" || m === "trap" || m === "theta" || m === "bdf2") return solveImplicit(m, p, { h: hh, blowup: 1e6 });
   return solve(m, p, { rtol: tol, atol: tol * 1e-2, blowup: 1e6, maxSteps: 60000 });
 }
@@ -304,7 +305,7 @@ export default function T18() {
       const rf = solve("ros", p, { rtol: 1e-8, atol: 1e-10, maxSteps: 400000 });
       const a1 = comp(rf, 0),
         a2 = comp(rf, 1);
-      const cells = (["euler", "rk4", "ieuler", "trap", "theta", "bdf2"] as MethodId[]).map((m) => {
+      const cells = TABLE_FIXED.map((m) => {
         const s = run(m, p, 0.1, 1e-4);
         return { s, e: errVsRef(s, rf, a1, a2) };
       });
@@ -422,8 +423,8 @@ export default function T18() {
               }
             >
               <p className="text-[14px] leading-relaxed text-white/75">
-                Повільна мода живе секунди, швидка — тисячні. При <Tex>{"h = 0.1"}</Tex> маємо <Tex>{"h\\lambda_1 \\approx -242"}</Tex>: явний Ейлер (межа −2)
-                і RK4 (−2.785) вибухають з першого ж кроку. І це ще в рівновазі: на піку початкового стрибка (<Tex>{"u_1 \\approx 130"}</Tex>) швидке власне
+                Повільна мода живе секунди, швидка — тисячні. При <Tex>{"h = 0.1"}</Tex> маємо <Tex>{"h\\lambda_1 \\approx -242"}</Tex>: явний Ейлер і RK2 (межа
+                −2), RK3 (−2.513) і RK4 (−2.785) вибухають з першого ж кроку. І це ще в рівновазі: на піку початкового стрибка (<Tex>{"u_1 \\approx 130"}</Tex>) швидке власне
                 число якобіана <Tex>{"\\approx -u_1^2 \\approx -1.7\\cdot10^4"}</Tex>.
               </p>
             </Say>
@@ -634,7 +635,7 @@ export default function T18() {
           {blown.length > 0 && fastReal && (
             <Insight
               tone="bad"
-              title={`${blown.map((x) => METHODS[x.m].short).join(" і ")}: вибух`}
+              title={`${blown.length > 1 ? `${blown.slice(0, -1).map((x) => METHODS[x.m].short).join(", ")} і ${METHODS[blown[blown.length - 1].m].short}` : METHODS[blown[0].m].short}: вибух`}
               simple={
                 <>
                   Найшвидший процес тут має характерний час ~{fmt(1 / Math.abs(lamFast), 2)} од., а метод крокує по {fmt(hEff, 3)} — у{" "}
@@ -646,10 +647,12 @@ export default function T18() {
               }
             >
               Найшвидше власне число в рівновазі <Tex>{`\\lambda \\approx ${fmt(lamFast, 5)}`}</Tex>, тож <Tex>{`h\\lambda \\approx ${fmt(hEff * lamFast, 4)}`}</Tex> — далеко за
-              межами області стійкості (явний Ейлер: <Tex>{"[-2, 0]"}</Tex>, RK4: <Tex>{"\\approx[-2.785, 0]"}</Tex>). Похибка множиться на{" "}
+              межами області стійкості (явний Ейлер і RK2: <Tex>{"[-2, 0]"}</Tex>, RK3: <Tex>{"\\approx[-2.513, 0]"}</Tex>, RK4: <Tex>{"\\approx[-2.785, 0]"}</Tex>).
+              Похибка множиться на{" "}
               <Tex>{`|1 + h\\lambda| \\approx ${fmt(Math.abs(1 + hEff * lamFast), 4)}`}</Tex> на кожному кроці. Уздовж траєкторії ще гірше: на піку{" "}
               <Tex>{"u_1"}</Tex> якобіан має <Tex>{`\\lambda \\approx -u_1^2 \\approx ${fmt(-lamTraj.neg, 4)}`}</Tex>, тож щоб явний Ейлер пережив увесь відрізок, потрібно{" "}
-              <Tex>{`h < 2/|\\lambda|_{\\max} \\approx ${fmt(hEuler, 3)}`}</Tex> (RK4: <Tex>{`h < ${fmt(2.785 / lamTraj.neg, 3)}`}</Tex>), а не{" "}
+              <Tex>{`h < 2/|\\lambda|_{\\max} \\approx ${fmt(hEuler, 3)}`}</Tex> (RK3: <Tex>{`h < ${fmt(2.513 / lamTraj.neg, 3)}`}</Tex>, RK4:{" "}
+              <Tex>{`h < ${fmt(2.785 / lamTraj.neg, 3)}`}</Tex>), а не{" "}
               <Tex>{`${fmt(2 / Math.abs(lamFast), 3)}`}</Tex>, як підказує сама рівновага.
             </Insight>
           )}
@@ -827,7 +830,7 @@ export default function T18() {
           <Table
             head={["Метод", ...table.map((r) => `B = ${r.b}`)]}
             rows={[
-              ...(["euler", "rk4", "ieuler", "trap", "theta", "bdf2"] as MethodId[]).map((m, j) => [
+              ...TABLE_FIXED.map((m, j) => [
                 <span key={m} style={{ color: METHODS[m].color }}>
                   {METHODS[m].name}
                 </span>,
@@ -955,7 +958,7 @@ export default function T18() {
           questions={[
             {
               id: "euler-h01",
-              q: <>Колба з умови (A = 50, B = 80), крок h = 0.1. Що буде з явним Ейлером і RK4?</>,
+              q: <>Колба з умови (A = 50, B = 80), крок h = 0.1. Що буде з явними методами — Ейлером, RK2, RK3, RK4?</>,
               options: [
                 "Нічого страшного — рівновага ж стійка",
                 "Вибухнуть за 1–2 кроки",
@@ -965,14 +968,15 @@ export default function T18() {
               correct: 1,
               explain: (
                 <>
-                  У рівновазі hλ₁ ≈ −242, а на піку стрибка (u₁ ≈ 130) hλ ≈ −1700 — у сотні разів за межами областей стійкості ([−2, 0] і ≈[−2.785, 0]). Поріг
-                  10⁶ RK4 перетинає вже на першому кроці (|u₁| ~ 10⁹¹), явний Ейлер — на другому (u₁ ≈ 2·10⁴, потім 7.5·10¹¹).
+                  У рівновазі hλ₁ ≈ −242, а на піку стрибка (u₁ ≈ 130) hλ ≈ −1700 — у сотні разів за межами областей стійкості ([−2, 0] для Ейлера і RK2,
+                  ≈[−2.513, 0] для RK3, ≈[−2.785, 0] для RK4). Поріг 10⁶ RK2, RK3 і RK4 перетинають вже на першому кроці (|u₁| ~ 10¹¹, 10³² і 10⁹¹ — що вище
+                  порядок, то більший степінь hλ у R), явний Ейлер — на другому (u₁ ≈ 2·10⁴, потім 7.5·10¹¹).
                 </>
               ),
               explainSimple: (
                 <>
                   Стійкість рівноваги методу не допомагає: він крокує в сотні разів довше, ніж триває швидкий процес. Перший же крок Ейлера закидає X до ≈20 000,
-                  другий — до ≈10¹². RK4 «злітає» ще на першому.
+                  другий — до ≈10¹². RK2, RK3 і RK4 «злітають» ще на першому кроці.
                 </>
               ),
               show: {
@@ -980,7 +984,7 @@ export default function T18() {
                 run: () => {
                   setP({ A: 50, B: 80, u10: 50, u20: 80, T: 10 });
                   setH(0.1);
-                  setMethods((ms) => Array.from(new Set([...ms, "euler", "rk4", "ieuler"])) as MethodId[]);
+                  setMethods((ms) => Array.from(new Set([...ms, "euler", "rk2", "rk3", "rk4", "ieuler"])) as MethodId[]);
                 },
               },
             },
@@ -1052,13 +1056,13 @@ export default function T18() {
             simple={
               <>
                 Явний метод питає «куди рухаємося зараз?» і йде туди на 0.1 — а швидкий процес у колбі завершується за тисячні частки. Він перестрибує, і
-                кожен стрибок більший за попередній: Ейлер вибухає на другому кроці, RK4 — на першому. Щоб вижити, потрібен крок ~0.00012 — понад 80 000
+                кожен стрибок більший за попередній: Ейлер вибухає на другому кроці, RK2, RK3 і RK4 — на першому. Щоб вижити, потрібен крок ~0.00012 — понад 80 000
                 кроків заради кривої, що виглядає як плавна експонента. <Relatable kind="steps" n={83000} />
               </>
             }
           >
             У рівновазі <Tex>{"h\\lambda_1 \\approx -240"}</Tex>, що в сотню разів за межею стійкості, а на піку стрибка (<Tex>{"u_1 \\approx 130"}</Tex>,{" "}
-            <Tex>{"\\lambda \\approx -u_1^2"}</Tex>) — аж <Tex>{"h\\lambda \\approx -1700"}</Tex>. Явний Ейлер вибухає вже на другому кроці, RK4 — на першому. Щоб вони
+            <Tex>{"\\lambda \\approx -u_1^2"}</Tex>) — аж <Tex>{"h\\lambda \\approx -1700"}</Tex>. Явний Ейлер вибухає вже на другому кроці, RK2, RK3 і RK4 — на першому. Щоб вони
             вижили, потрібен крок <Tex>{"h \\lesssim 2/|\\lambda|_{\\max} \\approx 1.2\\cdot10^{-4}"}</Tex> (для B = 80) — понад 80 000 кроків на <Tex>{"[0,10]"}</Tex> для
             розв&apos;язку, що після першої тисячної виглядає як плавна експонента. Оцінка за рівноважним λ (<Tex>{"h < 8\\cdot10^{-4}"}</Tex>, 12 500 кроків) тут оманлива.
           </Insight>

@@ -22,7 +22,7 @@ import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
 
-const ALL: MethodId[] = ["euler", "rk4", "ieuler", "trap", "bdf2", "dopri", "ros", "thetaA"];
+const ALL: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "trap", "bdf2", "dopri", "ros", "thetaA"];
 const EPS = 0.08,
   AA = 0.7,
   BB = 0.8;
@@ -242,7 +242,7 @@ export default function T20() {
       [0, -3, 0.5].map((i) => {
         const p = fhn(i, 200, [0.55, 0.25]);
         const rfAt = denseOutput(solve("dopri", p, { rtol: 1e-9, atol: 1e-10 }), p.f);
-        return (["dopri", "ros", "thetaA", "euler", "rk4", "ieuler", "bdf2"] as MethodId[]).map((m) => {
+        return (["dopri", "ros", "thetaA", "euler", "rk2", "rk3", "rk4", "ieuler", "bdf2"] as MethodId[]).map((m) => {
           const s = run(m, p, 0.1, 1e-3);
           return { m, s, e: maxErrV(s, rfAt) };
         });
@@ -555,8 +555,8 @@ export default function T20() {
               }
             >
               На гілках кубіки <Tex>{"|V| \\approx 2"}</Tex>, тож <Tex>{"\\partial \\dot V/\\partial V = 1 - V^2 \\approx -3"}</Tex>; уздовж еталонної траєкторії{" "}
-              <Tex>{`|\\lambda|_{\\max} \\approx ${fmt(lamMax, 3)}`}</Tex>, і лінійна межа стійкості явного Ейлера — <Tex>{`h < 2/|\\lambda|_{\\max} \\approx ${fmt(2 / lamMax, 3)}`}</Tex>, RK4 —{" "}
-              <Tex>{`h \\lesssim ${fmt(2.785 / lamMax, 3)}`}</Tex> (кубічна нелінійність ще трохи відтягує вибух). При <Tex>{`h = ${fmt(hEff, 3)}`}</Tex> швидка змінна
+              <Tex>{`|\\lambda|_{\\max} \\approx ${fmt(lamMax, 3)}`}</Tex>, і лінійна межа стійкості явного Ейлера і RK2 — <Tex>{`h < 2/|\\lambda|_{\\max} \\approx ${fmt(2 / lamMax, 3)}`}</Tex>, RK3 —{" "}
+              <Tex>{`h \\lesssim ${fmt(2.513 / lamMax, 3)}`}</Tex>, RK4 — <Tex>{`h \\lesssim ${fmt(2.785 / lamMax, 3)}`}</Tex> (кубічна нелінійність ще трохи відтягує вибух). При <Tex>{`h = ${fmt(hEff, 3)}`}</Tex> швидка змінна
               починає «стрибати» між гілками й розлітається.
             </Insight>
           )}

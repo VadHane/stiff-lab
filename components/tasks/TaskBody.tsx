@@ -29,6 +29,7 @@ const MAP: Record<string, ComponentType> = {
   "23": dynamic(() => import("./T23"), { ssr: false, loading: Loading }),
   "24": dynamic(() => import("./T24"), { ssr: false, loading: Loading }),
   "25": dynamic(() => import("./T25"), { ssr: false, loading: Loading }),
+  lorenz: dynamic(() => import("./TLorenz"), { ssr: false, loading: Loading }),
 };
 
 export default function TaskBody({ id }: { id: string }) {

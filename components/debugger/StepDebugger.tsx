@@ -75,7 +75,7 @@ function StepDebugger({
   t0 = 0,
   T,
   view,
-  methods = ["euler", "rk4", "ieuler", "theta", "trap", "bdf2"],
+  methods = ["euler", "rk2", "rk3", "rk4", "ieuler", "theta", "trap", "bdf2"],
   h0,
   hMin,
   hMax,
@@ -255,7 +255,7 @@ function StepDebugger({
         const [x1, y1p] = toPx(last.t1, last.y1);
         if (last.method === "euler") {
           arrow(ctx, x0, y0p, x1, y1p, color, 3.2, 12);
-        } else if (last.method === "rk4") {
+        } else if (last.method === "rk2" || last.method === "rk3" || last.method === "rk4") {
           last.probes.forEach((p, i) => {
             const end = toPx(last.t0 + last.h, last.y0.map((v, j) => v + last.h * p.k[j]));
             ctx.globalAlpha = 0.75;
@@ -337,6 +337,32 @@ function StepDebugger({
         <>
           y₍ₙ₊₁₎ = yₙ + h·f(tₙ, yₙ): дотична в лівому кінці кроку. Біла пунктирна — точний розв&apos;язок задачі Коші з точки (tₙ, yₙ); розрив між її кінцем і
           новою точкою — локальна похибка O(h²).
+        </>
+      ),
+    },
+    rk2: {
+      simple: (
+        <>
+          🔎 Дві «розвідки»: метод подивився напрямок на старті (k₁), пройшов за ним лише півкроку, там подивився ще раз (k₂) — і весь крок зробив за цим
+          другим, «серединним» напрямком. Тонка стрілка k₁ показує, куди завів би сам старт; біла товста — куди метод пішов насправді.
+        </>
+      ),
+      sci: (
+        <>
+          y₍ₙ₊₁₎ = yₙ + h·k₂, k₂ = f(tₙ + h/2, yₙ + (h/2)k₁) — правило середньої точки (модифікований Ейлер). Локальна похибка O(h³), R(z) = 1 + z + z²/2.
+        </>
+      ),
+    },
+    rk3: {
+      simple: (
+        <>
+          🔎 Три «розвідки»: напрямок на старті (k₁), посередині кроку (k₂) і в кінці кроку (k₃) — причому до кінця метод «дострибує» за правилом yₙ − h·k₁ +
+          2h·k₂, щоб похибки взаємно скоротилися. Підсумок — зважене середнє 1 : 4 : 1 (як у формулі Сімпсона).
+        </>
+      ),
+      sci: (
+        <>
+          y₍ₙ₊₁₎ = yₙ + h(k₁ + 4k₂ + k₃)/6, k₃ = f(tₙ + h, yₙ − h·k₁ + 2h·k₂) — метод Кутти 3-го порядку. Локальна похибка O(h⁴), R(z) = 1 + z + z²/2 + z³/6.
         </>
       ),
     },
@@ -495,7 +521,7 @@ function StepDebugger({
                       {last.newton.continuation && (mode === "simple" ? " (довелося підкрадатися поступово)" : " (після продовження за параметром hb)")}
                     </span>
                   )}
-                  <span>f-обчислень за крок: {last.method === "rk4" ? 4 : last.method === "euler" ? 1 : `1 + ${its}×(1+${cur.y.length})`}</span>
+                  <span>f-обчислень за крок: {last.c ? `1 + ${its}×(1+${cur.y.length})` : last.probes.length}</span>
                 </div>
               </>
             ) : (

@@ -20,6 +20,24 @@ export const METHODS: Record<MethodId, MethodMeta> = {
     order: 1,
     about: "y₍ₙ₊₁₎ = yₙ + h·f(tₙ, yₙ). Найпростіший, але стійкий лише при |1 + hλ| ≤ 1.",
   },
+  rk2: {
+    id: "rk2",
+    name: "Рунге–Кутта 2 (середня точка)",
+    short: "RK2",
+    color: "#ff8a3d",
+    kind: "explicit",
+    order: 2,
+    about: "k₁ = f(tₙ, yₙ), k₂ = f(tₙ + h/2, yₙ + h·k₁/2), y₍ₙ₊₁₎ = yₙ + h·k₂. Дві «розвідки» за крок, 2-й порядок; R(z) = 1 + z + z²/2, на дійсній осі стійкий до hλ = −2.",
+  },
+  rk3: {
+    id: "rk3",
+    name: "Рунге–Кутта 3 (Кутта)",
+    short: "RK3",
+    color: "#b5e853",
+    kind: "explicit",
+    order: 3,
+    about: "k₃ = f(tₙ + h, yₙ − h·k₁ + 2h·k₂), y₍ₙ₊₁₎ = yₙ + h(k₁ + 4k₂ + k₃)/6. Три стадії, 3-й порядок; R(z) = 1 + z + z²/2 + z³/6, на дійсній осі стійкий до hλ ≈ −2.51.",
+  },
   rk4: {
     id: "rk4",
     name: "Рунге–Кутта 4",
@@ -27,7 +45,7 @@ export const METHODS: Record<MethodId, MethodMeta> = {
     color: "#ffb547",
     kind: "explicit",
     order: 4,
-    about: "Класичний 4-стадійний метод. Дуже точний, але все одно явний — обмежений областю стійкості.",
+    about: "Класичний 4-стадійний метод. Дуже точний, але все одно явний — обмежений областю стійкості (на дійсній осі до hλ ≈ −2.79).",
   },
   ieuler: {
     id: "ieuler",

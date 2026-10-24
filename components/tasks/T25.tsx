@@ -12,7 +12,7 @@ import { fmt, fmtMs, sup } from "@/lib/format";
 import { eigenvalues } from "@/lib/linalg";
 import { METHODS } from "@/lib/methods";
 import { cached } from "@/lib/stiffc-cache";
-import { isAdaptive, sampleAt, solve, type MethodId, type Problem, type Solution } from "@/lib/ode";
+import { isAdaptive, isExplicit, sampleAt, solve, type MethodId, type Problem, type Solution } from "@/lib/ode";
 import AnalogyCard from "@/components/analogy/AnalogyCard";
 import IslandRescueScene from "@/components/analogy/IslandRescueScene";
 import { Say } from "@/components/mode/Mode";
@@ -20,7 +20,7 @@ import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
 
 type Form = "orig" | "log";
-const ALL: MethodId[] = ["bdf2", "ieuler", "trap", "theta", "euler", "rk4", "ros", "dopri"];
+const ALL: MethodId[] = ["bdf2", "ieuler", "trap", "theta", "euler", "rk2", "rk3", "rk4", "ros", "dopri"];
 const LN10 = Math.LN10;
 const STIFF_SAMPLES = 200;
 const PRESETS = [
@@ -530,9 +530,9 @@ export default function T25() {
   }, [ref, de, dy0, dT]);
 
   const presetId = PRESETS.find((p) => p.eps === eps && p.y0.every((v, i) => v === y0[i]))?.id ?? "";
-  const explBlow = sols.filter(({ m, s }) => (m === "euler" || m === "rk4") && s.failed);
+  const explBlow = sols.filter(({ m, s }) => isExplicit(m) && s.failed);
   /** Runs in (u, v, θ) that went below zero (explicit blow-ups are covered by their own insight). */
-  const origNeg = form === "orig" ? sols.filter(({ m, s, v }) => v.neg > 0 && !((m === "euler" || m === "rk4") && s.failed)) : [];
+  const origNeg = form === "orig" ? sols.filter(({ m, s, v }) => v.neg > 0 && !(isExplicit(m) && s.failed)) : [];
   const uFin = Math.exp(ref.lnU[ref.lnU.length - 1]);
   /** In (u, v, θ): is the start alone outside the explicit Euler bound h|λ| < 2? (False e.g. for the "near equilibrium" preset with h = 0.2.) */
   const startStiff = dh * lam0 > 2;
@@ -1445,7 +1445,7 @@ export default function T25() {
                         (dh * lamToFail.mx > 2 ? (
                           <>
                             : до цього моменту найшвидший процес пришвидшився до ≈ {fmt(lamToFail.mx, 3)} (t ≈ {fmt(lamToFail.tAt, 4)}), і крок × темп сягнув ≈{" "}
-                            {fmt(dh * lamToFail.mx, 3)} (межа Ейлера — 2, RK4 — 2.785).
+                            {fmt(dh * lamToFail.mx, 3)} (межі: Ейлер і RK2 — 2, RK3 — 2.513, RK4 — 2.785).
                           </>
                         ) : (
                           <>
@@ -1469,7 +1469,7 @@ export default function T25() {
                 startStiff ? (
                   <>
                     На старті <Tex>{`\\lambda \\approx ${evList(ev0.orig, true)}`}</Tex>, і <Tex>{`h|\\lambda|_{\\max} \\approx ${fmt(dh * lam0, 3)}`}</Tex> — за межами
-                    областей стійкості (2 для Ейлера, 2.785 для RK4): явному Ейлеру потрібен <Tex>{`h < 2/|\\lambda| \\approx ${fmt(2 / lam0, 3)}`}</Tex>, тобто ~
+                    областей стійкості (2 для Ейлера і RK2, 2.513 для RK3, 2.785 для RK4): явному Ейлеру потрібен <Tex>{`h < 2/|\\lambda| \\approx ${fmt(2 / lam0, 3)}`}</Tex>, тобто ~
                     {eulerSteps0.toLocaleString("uk-UA")} кроків на <Tex>{`[0, ${fmt(dT, 4)}]`}</Tex>.
                   </>
                 ) : (
@@ -1480,7 +1480,8 @@ export default function T25() {
                       <>
                         {" "}
                         Уздовж еталона до цього моменту <Tex>{`\\max|\\operatorname{Re}\\lambda| \\approx ${fmt(lamToFail.mx, 3)}`}</Tex> (при{" "}
-                        <Tex>{`t \\approx ${fmt(lamToFail.tAt, 4)}`}</Tex>), тобто <Tex>{`h|\\lambda| \\approx ${fmt(dh * lamToFail.mx, 3)}`}</Tex> (межі: 2 для Ейлера, 2.785 для RK4)
+                        <Tex>{`t \\approx ${fmt(lamToFail.tAt, 4)}`}</Tex>), тобто <Tex>{`h|\\lambda| \\approx ${fmt(dh * lamToFail.mx, 3)}`}</Tex> (межі: 2 для Ейлера і RK2, 2.513 для RK3,
+                        2.785 для RK4)
                         {dh * lamToFail.mx > 2
                           ? "."
                           : ": лінійна стійкість на еталоні не порушена, тож причина — сам чисельний розв'язок, що відійшов від еталона (у змінних (u, v, θ) він може проскочити через нуль)."}
@@ -1495,7 +1496,7 @@ export default function T25() {
               )}
             </Insight>
           )}
-          {form === "log" && sols.some(({ m, s }) => (m === "euler" || m === "rk4") && !s.failed) && (
+          {form === "log" && sols.some(({ m, s }) => isExplicit(m) && !s.failed) && (
             <Insight
               tone="info"
               title="Сюрприз: у лог-змінних навіть явні методи живуть"

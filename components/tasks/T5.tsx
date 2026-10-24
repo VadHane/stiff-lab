@@ -12,7 +12,7 @@ import { Tex } from "@/components/ui/Tex";
 import { lyapunov } from "@/lib/chaos-tools";
 import { fmt, fmtMs } from "@/lib/format";
 import { METHODS } from "@/lib/methods";
-import { comp, denseOutput, indexAt, sampleAt, solve, type MethodId, type Problem, type Solution } from "@/lib/ode";
+import { comp, denseOutput, indexAt, isExplicit, sampleAt, solve, type MethodId, type Problem, type Solution } from "@/lib/ode";
 import { plural } from "@/lib/relatable";
 import AnalogyCard from "@/components/analogy/AnalogyCard";
 import RosslerForecastScene from "@/components/analogy/RosslerForecastScene";
@@ -21,7 +21,8 @@ import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
 
-const ALL: MethodId[] = ["rk4", "dopri", "ros"];
+const ALL: MethodId[] = ["rk2", "rk3", "rk4", "dopri", "ros"];
+const EXPL_BOUND: Partial<Record<MethodId, string>> = { rk2: "2", rk3: "≈ 2.51", rk4: "≈ 2.79" };
 const Y0: [number, number, number] = [0, 0.5, 0];
 // sandbox: the system of the assignment (a = 0.15, b = 0.4, c = 8.5); stable references
 const PG_F = (_t: number, y: number[]) => [-y[1] - y[2], y[0] + 0.15 * y[1], 0.4 + y[2] * (y[0] - 8.5)];
@@ -156,7 +157,7 @@ export default function T5() {
       (methods.length ? methods : (["rk4"] as MethodId[])).map((m) => ({
         m,
         s:
-          m === "rk4"
+          isExplicit(m)
             ? solve(m, problem, { h: dh, blowup: 1e6 })
             : m === "dopri"
               ? solve(m, problem, { rtol: 1e-6, atol: 1e-9, maxSteps: 200000 })
@@ -279,6 +280,7 @@ export default function T5() {
   const fp = fixedPoint(da, db, dc);
   const jFast = Math.abs(fp[0] - dc);
   const jEdge = dc - analysis.xMin;
+  const explBlown = sols.filter(({ m, s }) => isExplicit(m) && s.failed).map(({ m }) => m);
   const dopriSol = sols.find(({ m }) => m === "dopri")?.s;
   const dopriMedH = dopriSol && dopriSol.hs.length ? [...dopriSol.hs].sort((p, q) => p - q)[dopriSol.hs.length >> 1] : NaN;
 
@@ -410,7 +412,7 @@ export default function T5() {
               />
               <Slider label="Кінець відрізка T" value={T} onChange={setT} min={20} max={500} step={10} />
               <MethodPicker methods={ALL} value={methods} onChange={setMethods} />
-              <Slider label="Крок RK4 h" value={h} onChange={setH} min={0.002} max={0.3} log hint="DOPRI: rtol = 10⁻⁶; Розенброк: rtol = 10⁻⁴" />
+              <Slider label="Крок RK2/RK3/RK4 h" value={h} onChange={setH} min={0.002} max={0.3} log hint="DOPRI: rtol = 10⁻⁶; Розенброк: rtol = 10⁻⁴" />
               <Slider label="Збурення x(0) = δ" value={delta} onChange={setDelta} min={1e-12} max={1e-2} log format={(v) => fmt(v, 2)} />
               <Toggle label="Показати «двійника» в 3D" value={showTwin} onChange={setShowTwin} />
               <div className="rounded-xl bg-white/[0.04] p-3 text-[12.5px] text-white/65">
@@ -480,25 +482,26 @@ export default function T5() {
               {fmt(L, 2)} ≈ 0 (рух уздовж циклу не розтягується і не стискається). Різні методи дають ту саму картинку — похибки не підсилюються.
             </Insight>
           )}
-          {sols.some(({ m, s }) => m === "rk4" && s.failed) && (
+          {explBlown.length > 0 && (
             <Insight
               tone="bad"
-              title="RK4 вибухнув"
+              title={`${explBlown.map((m) => METHODS[m].short).join(", ")} ${explBlown.length > 1 ? "вибухнули" : "вибухнув"}`}
               simple={
                 <>
                   Крок h = {fmt(dh, 3)} завеликий. Коли частинка пролітає дальній край «підлоги», висота z змінюється в ~{fmt(jEdge, 3)} разів швидше за
-                  обертання, і RK4 «перестрибує» правильне значення щоразу дедалі дужче — аж до вибуху. Зменшіть крок.
+                  обертання, і явний метод «перестрибує» правильне значення щоразу дедалі дужче — аж до вибуху. Зменшіть крок.
                 </>
               }
             >
               При h = {fmt(dh, 3)} добуток h·|λ| для «швидкого» z-власного числа (|x − c| сягає {fmt(jEdge, 3)} на краю «підлоги», тобто h|λ| ≈{" "}
-              {fmt(dh * jEdge, 2)}) вийшов за межу стійкості RK4 на дійсній осі (≈ 2.8). Зменшіть крок.
+              {fmt(dh * jEdge, 2)}) вийшов за межу стійкості на дійсній осі ({explBlown.map((m) => `${METHODS[m].short} — ${EXPL_BOUND[m]}`).join(", ")}).
+              Зменшіть крок.
             </Insight>
           )}
-          {sols.some(({ m, s }) => m === "rk4" && !s.failed) && dh > 0.08 && (
+          {sols.some(({ m, s }) => isExplicit(m) && !s.failed) && dh > 0.08 && (
             <Insight
               tone="warn"
-              title="Великий крок RK4"
+              title="Великий крок явного методу"
               simple={
                 <>
                   Крок h = {fmt(dh, 3)} — лише ~{Math.round(6.3 / dh)} кроків на один оберт вихору. Метод ще не вибухнув, але у хаотичному режимі
@@ -681,7 +684,7 @@ export default function T5() {
               logY
               series={[
                 ...sols
-                  .filter(({ m }) => m !== "rk4")
+                  .filter(({ m }) => !isExplicit(m))
                   .map(({ m, s }) => ({ x: s.t.slice(1), y: s.hs, color: METHODS[m].color, label: METHODS[m].short, width: 1.3 })),
                 { x: main.t, y: comp(main, 2).map((v) => Math.max(1e-3, v / 100)), color: "#ffffff", label: "z/100", width: 1, opacity: 0.3 },
               ]}

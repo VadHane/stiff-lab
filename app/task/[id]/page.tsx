@@ -12,7 +12,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<'/task/[id]'>): Promise<Metadata> {
   const { id } = await params;
   const t = taskById(id);
-  return { title: t ? `№${t.num}. ${t.title} — Лаб` : 'Лаб' };
+  return { title: t ? `${t.label ?? `№${t.num}`}. ${t.title} — Лаб` : 'Лаб' };
 }
 
 async function TaskPage({ params }: { params: PageProps<'/task/[id]'>['params'] }) {

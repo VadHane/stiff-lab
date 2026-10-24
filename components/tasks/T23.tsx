@@ -17,7 +17,7 @@ import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
 
-const ALL: MethodId[] = ["dopri", "ros", "rk4", "ieuler", "trap", "thetaA"];
+const ALL: MethodId[] = ["dopri", "ros", "rk2", "rk3", "rk4", "ieuler", "trap", "thetaA"];
 const EPS_GRID = [0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.003];
 
 const MODES = [
@@ -342,7 +342,7 @@ export default function T23() {
               <Slider label="c" value={c} onChange={setC} min={0} max={3} step={0.01} />
               <Slider label="Кінець відрізка" value={T} onChange={setT} min={2} max={40} step={1} />
               <MethodPicker methods={ALL} value={methods} onChange={setMethods} />
-              <Slider label="Крок h (RK4, неявн. Ейлер, трапеції)" value={h} onChange={setH} min={0.0005} max={0.2} log hint={`h/ε = ${fmt(h / eps, 3)} — кроків на оберт ≈ ${fmt((2 * Math.PI * eps) / h, 3)}`} />
+              <Slider label="Крок h (RK2, RK3, RK4, неявн. Ейлер, трапеції)" value={h} onChange={setH} min={0.0005} max={0.2} log hint={`h/ε = ${fmt(h / eps, 3)} — кроків на оберт ≈ ${fmt((2 * Math.PI * eps) / h, 3)}`} />
               <Chips
                 label="Масштаб часу"
                 value={zoom}

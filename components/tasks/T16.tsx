@@ -20,7 +20,7 @@ import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
 
 const W_BOOK = (2 * Math.PI) / 10;
-const ALL: MethodId[] = ["ros", "dopri", "rk4", "euler"];
+const ALL: MethodId[] = ["ros", "dopri", "rk2", "rk3", "rk4", "euler"];
 
 const PRESETS = [
   { id: 0, mu: 8.5, a: 0.5, w: W_BOOK, label: "умова: μ=8.5, a=0.5" },
@@ -410,7 +410,7 @@ export default function T16() {
                 ]}
               />
               <MethodPicker methods={ALL} value={methods} onChange={setMethods} />
-              <Slider label="Крок h (RK4, Ейлер)" value={h} onChange={setH} min={0.001} max={0.2} log />
+              <Slider label="Крок h (Ейлер, RK2, RK3, RK4)" value={h} onChange={setH} min={0.001} max={0.2} log />
               <Slider label="Фаза перерізу θ₀" value={theta0} onChange={setTheta0} min={0} max={6.28} step={0.01} format={(v) => `${fmt(v / Math.PI, 3)}π`} />
               <Slider
                 label="Збурення u(0): δ"

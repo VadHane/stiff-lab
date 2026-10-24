@@ -11,7 +11,7 @@ import { Tex } from "@/components/ui/Tex";
 import { fmt, fmtMs } from "@/lib/format";
 import { METHODS } from "@/lib/methods";
 import { cached } from "@/lib/stiffc-cache";
-import { isAdaptive, solve, stiffnessAt, type MethodId, type Problem, type Solution } from "@/lib/ode";
+import { isAdaptive, isExplicit, solve, stiffnessAt, type MethodId, type Problem, type Solution } from "@/lib/ode";
 import AnalogyCard from "@/components/analogy/AnalogyCard";
 import ChameleonScene from "@/components/analogy/ChameleonScene";
 import { Say } from "@/components/mode/Mode";
@@ -21,7 +21,7 @@ import Relatable from "@/components/ui/Relatable";
 const S = 77.27,
   Q = 8.375e-6,
   W = 0.161;
-const ALL: MethodId[] = ["ros", "dopri", "thetaA", "ieuler", "bdf2", "theta", "trap", "euler", "rk4"];
+const ALL: MethodId[] = ["ros", "dopri", "thetaA", "ieuler", "bdf2", "theta", "trap", "euler", "rk2", "rk3", "rk4"];
 const T_LIST = [100, 360, 720];
 const H_LIST = [0.001, 0.002, 0.004, 0.01];
 const MAX_N = 100000;
@@ -187,8 +187,8 @@ export default function T24() {
 
   const ros = sols.find((r) => r.m === "ros");
   const dop = sols.find((r) => r.m === "dopri");
-  const fixedFail = sols.filter(({ m, s }) => !isAdaptive(m) && m !== "euler" && m !== "rk4" && s.failed);
-  const explFail = sols.filter(({ m, s }) => (m === "euler" || m === "rk4") && s.failed);
+  const fixedFail = sols.filter(({ m, s }) => !isAdaptive(m) && !isExplicit(m) && s.failed);
+  const explFail = sols.filter(({ m, s }) => isExplicit(m) && s.failed);
 
   const analogy = useMemo(
     () => (

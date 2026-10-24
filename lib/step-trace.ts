@@ -2,7 +2,7 @@
 import { iMinus, luFactor, luSolve, type Vec } from "./linalg";
 import { numJac, type RHS } from "./ode";
 
-export type DbgMethod = "euler" | "rk4" | "ieuler" | "theta" | "trap" | "bdf2";
+export type DbgMethod = "euler" | "rk2" | "rk3" | "rk4" | "ieuler" | "theta" | "trap" | "bdf2";
 
 export interface Probe {
   t: number;
@@ -79,6 +79,38 @@ export function traceStep(method: DbgMethod, f: RHS, t: number, y: Vec, h: numbe
   if (method === "euler") {
     const k1 = f(t, y);
     return { ...base, y1: axpy(h, k1, y), probes: [{ t, y, k: k1, label: "k₁ = f(tₙ, yₙ)" }] };
+  }
+  if (method === "rk2") {
+    // midpoint rule
+    const k1 = f(t, y);
+    const y2 = axpy(h / 2, k1, y);
+    const k2 = f(t + h / 2, y2);
+    return {
+      ...base,
+      y1: axpy(h, k2, y),
+      probes: [
+        { t, y, k: k1, label: "k₁" },
+        { t: t + h / 2, y: y2, k: k2, label: "k₂" },
+      ],
+    };
+  }
+  if (method === "rk3") {
+    // Kutta's third-order rule
+    const k1 = f(t, y);
+    const y2 = axpy(h / 2, k1, y);
+    const k2 = f(t + h / 2, y2);
+    const y3 = y.map((v, i) => v + h * (2 * k2[i] - k1[i]));
+    const k3 = f(t + h, y3);
+    const y1 = y.map((v, i) => v + (h / 6) * (k1[i] + 4 * k2[i] + k3[i]));
+    return {
+      ...base,
+      y1,
+      probes: [
+        { t, y, k: k1, label: "k₁" },
+        { t: t + h / 2, y: y2, k: k2, label: "k₂" },
+        { t: t + h, y: y3, k: k3, label: "k₃" },
+      ],
+    };
   }
   if (method === "rk4") {
     const k1 = f(t, y);

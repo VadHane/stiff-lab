@@ -107,13 +107,15 @@ function collectSection(sec: Element): string {
   return parts.join("\n");
 }
 
-function buildHtml(num: number, title: string) {
+/** `heading` — «Задача №18» / «Додаткова задача №14»; `fileId` — suffix of the downloaded file name */
+function buildHtml(heading: string, fileId: string, title: string) {
   const root = document.querySelector("[data-task-root]");
   const secs = Array.from(root?.querySelectorAll("[data-report-section]") ?? []).filter((s) => !s.closest("[data-report-skip]"));
   const body = secs.map(collectSection).join("\n<hr/>\n");
   const date = new Date().toLocaleDateString("uk-UA");
+  const lower = heading.charAt(0).toLowerCase() + heading.slice(1);
   return `<!doctype html><html lang="uk"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Звіт — задача №${num}</title>
+<title>Звіт — ${esc(lower)}</title>
 <style>
   :root { color-scheme: light; }
   body { font: 15px/1.55 "Times New Roman", Georgia, serif; color:#111; background:#fff; max-width: 820px; margin: 0 auto; padding: 32px 28px 60px; }
@@ -143,9 +145,9 @@ function buildHtml(num: number, title: string) {
   @media print { .bar { display:none; } body { padding: 0; } textarea { border: none; } }
   table, .insight, .formula { page-break-inside: avoid; }
 </style></head><body>
-<div class="bar"><button onclick="(function(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['<!doctype html>'+document.documentElement.outerHTML],{type:'text/html'}));a.download='zvit-zadacha-${num}.html';a.click();})()">⬇ Завантажити HTML</button><button class="primary" onclick="window.print()">🖨 Друк / зберегти PDF</button></div>
+<div class="bar"><button onclick="(function(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['<!doctype html>'+document.documentElement.outerHTML],{type:'text/html'}));a.download='zvit-zadacha-${esc(fileId)}.html';a.click();})()">⬇ Завантажити HTML</button><button class="primary" onclick="window.print()">🖨 Друк / зберегти PDF</button></div>
 <div style="text-align:center;color:#555">Звіт до лабораторної роботи · Розділ 12 «Числові методи розв'язування жорстких систем»</div>
-<h1>Задача №${num}. ${esc(title)}</h1>
+<h1>${esc(heading)}. ${esc(title)}</h1>
 <div class="sub">Сформовано ${date}</div>
 <div class="student"><span>Студент(ка):</span><input placeholder="ПІБ"/><span>Група:</span><input placeholder="група"/><span>Викладач:</span><input placeholder="ПІБ викладача"/></div>
 ${body}
@@ -156,17 +158,32 @@ ${body}
 </body></html>`;
 }
 
-export default function ReportButton({ num, title }: { num: number; title: string }) {
+export default function ReportButton({
+  num,
+  title,
+  heading,
+  fileId,
+}: {
+  num: number;
+  title: string;
+  /** report heading, default «Задача №{num}» (an extra task passes e.g. «Додаткова задача №14») */
+  heading?: string;
+  /** suffix of the file name `zvit-zadacha-{fileId}.html`, default `num` */
+  fileId?: string;
+}) {
   const { mode, setMode } = useMode();
   const [busy, setBusy] = useState(false);
   const [html, setHtml] = useState<string | null>(null);
   const frame = useRef<HTMLIFrameElement>(null);
+  const head = heading ?? `Задача №${num}`;
+  const headLower = head.charAt(0).toLowerCase() + head.slice(1);
+  const fid = fileId ?? String(num);
   const run = async () => {
     setBusy(true);
     const prev = mode;
     if (prev !== "sci") setMode("sci");
     await new Promise((r) => setTimeout(r, 300));
-    const doc = buildHtml(num, title);
+    const doc = buildHtml(head, fid, title);
     if (prev !== "sci") setMode(prev);
     setBusy(false);
     setHtml(doc);
@@ -175,7 +192,7 @@ export default function ReportButton({ num, title }: { num: number; title: strin
     if (!html) return;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
-    a.download = `zvit-zadacha-${num}.html`;
+    a.download = `zvit-zadacha-${fid}.html`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   };
@@ -203,7 +220,7 @@ export default function ReportButton({ num, title }: { num: number; title: strin
         createPortal(
         <div className="fixed inset-0 z-50 flex flex-col bg-black/75 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-label="Звіт до лабораторної">
           <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-2 pb-3">
-            <div className="font-display mr-auto text-[15px] text-white">📄 Звіт до лабораторної — задача №{num}</div>
+            <div className="font-display mr-auto text-[15px] text-white">📄 Звіт до лабораторної — {headLower}</div>
             <div className="w-full text-[12px] text-white/55 sm:order-last">
               Заповніть ПІБ і групу, допишіть власні висновки внизу, потім «Друк» → «Зберегти як PDF». Графіки й таблиці — з поточними параметрами сторінки.
             </div>

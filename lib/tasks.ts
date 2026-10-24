@@ -1,6 +1,8 @@
 export interface TaskMeta {
   id: string; // url slug = task number
   num: number;
+  /** badge text instead of «№N» (e.g. an extra task: «Дод. №14»); `num` is then used only for ordering */
+  label?: string;
   title: string;
   tagline: string;
   emoji: string;
@@ -170,6 +172,16 @@ export const TASKS: TaskMeta[] = [
     emoji: "🧬",
     accent: "#7cf29c",
     tags: ["екологія", "еволюція", "BDF2"],
+  },
+  {
+    id: "lorenz",
+    num: 26,
+    label: "Дод. №14",
+    title: "Модель Лоренца",
+    tagline: "Метелик, що махає крилом у Бразилії: водяне колесо, сім режимів за r і похибка, що подвоюється кожні 0.7 с",
+    emoji: "🦋",
+    accent: "#f0abfc",
+    tags: ["хаос", "3D", "ефект метелика", "RK2/RK3/RK4"],
   },
 ];
 

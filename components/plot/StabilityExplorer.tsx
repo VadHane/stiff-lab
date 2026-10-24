@@ -19,7 +19,7 @@ const csqrt = (a: C): C => {
   return [re, im];
 };
 
-export type StabMethod = "euler" | "ieuler" | "theta" | "trap" | "rk4" | "bdf2";
+export type StabMethod = "euler" | "ieuler" | "theta" | "trap" | "rk2" | "rk3" | "rk4" | "bdf2";
 
 /** amplification factor modulus |R(z)| (for BDF2: spectral radius of the characteristic polynomial) */
 export function amp(m: StabMethod, z: C, theta = 0.55): number {
@@ -33,6 +33,15 @@ export function amp(m: StabMethod, z: C, theta = 0.55): number {
     case "trap": {
       const th = m === "trap" ? 0.5 : theta;
       return abs(div(add(one, sc(1 - th, z)), add(one, sc(-th, z))));
+    }
+    case "rk2": {
+      const z2 = mul(z, z);
+      return abs(add(add(one, z), sc(1 / 2, z2)));
+    }
+    case "rk3": {
+      const z2 = mul(z, z),
+        z3 = mul(z2, z);
+      return abs(add(add(add(one, z), sc(1 / 2, z2)), sc(1 / 6, z3)));
     }
     case "rk4": {
       const z2 = mul(z, z),
@@ -55,6 +64,8 @@ export function amp(m: StabMethod, z: C, theta = 0.55): number {
 
 export const STAB_INFO: Record<StabMethod, { name: string; color: string; R: string }> = {
   euler: { name: "Явний Ейлер", color: "#ff5d73", R: "R(z)=1+z" },
+  rk2: { name: "RK2", color: "#ff8a3d", R: "R(z)=1+z+\\tfrac{z^2}{2}" },
+  rk3: { name: "RK3", color: "#b5e853", R: "R(z)=1+z+\\tfrac{z^2}{2}+\\tfrac{z^3}{6}" },
   rk4: { name: "RK4", color: "#ffb547", R: "R(z)=1+z+\\tfrac{z^2}{2}+\\tfrac{z^3}{6}+\\tfrac{z^4}{24}" },
   ieuler: { name: "Неявний Ейлер", color: "#3ee6a8", R: "R(z)=\\dfrac{1}{1-z}" },
   theta: { name: "θ = 0.55", color: "#5cc8ff", R: "R(z)=\\dfrac{1+0.45z}{1-0.55z}" },
@@ -72,7 +83,7 @@ interface Props {
   extraPoints?: { z: C; color: string; label?: string }[];
 }
 
-export default function StabilityExplorer({ methods = ["euler", "rk4", "ieuler", "theta", "trap", "bdf2"], z: zProp, onZ, height = 380, range = 4, extraPoints }: Props) {
+export default function StabilityExplorer({ methods = ["euler", "rk2", "rk3", "rk4", "ieuler", "theta", "trap", "bdf2"], z: zProp, onZ, height = 380, range = 4, extraPoints }: Props) {
   const [active, setActive] = useState<StabMethod>(methods[0]);
   const [zLocal, setZLocal] = useState<C>([-1.5, 0.6]);
   const z = zProp ?? zLocal;

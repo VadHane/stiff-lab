@@ -15,6 +15,8 @@ export interface Problem {
 
 export type MethodId =
   | "euler" // explicit Euler
+  | "rk2" // Runge–Kutta 2: midpoint rule (modified Euler)
+  | "rk3" // Runge–Kutta 3: Kutta's third-order rule (weights 1/6, 2/3, 1/6)
   | "rk4" // classical Runge–Kutta 4
   | "ieuler" // implicit (backward) Euler
   | "theta" // linear one-step θ-method, θ = 0.55 by default
@@ -265,6 +267,24 @@ function fixedStep(method: MethodId, p: Problem, o: SolveOptions): Solution {
         yn = axpy(h, C.f(t, y), y);
         break;
       }
+      case "rk2": {
+        // midpoint rule: slope at the half-step, R(z) = 1 + z + z²/2
+        const k1 = C.f(t, y);
+        const k2 = C.f(t + h / 2, axpy(h / 2, k1, y));
+        yn = axpy(h, k2, y);
+        break;
+      }
+      case "rk3": {
+        // Kutta's third-order rule, R(z) = 1 + z + z²/2 + z³/6
+        const k1 = C.f(t, y);
+        const k2 = C.f(t + h / 2, axpy(h / 2, k1, y));
+        const k3 = C.f(
+          t + h,
+          y.map((v, i) => v + h * (2 * k2[i] - k1[i])),
+        );
+        yn = y.map((v, i) => v + (h / 6) * (k1[i] + 4 * k2[i] + k3[i]));
+        break;
+      }
       case "rk4": {
         const k1 = C.f(t, y);
         const k2 = C.f(t + h / 2, axpy(h / 2, k1, y));
@@ -298,11 +318,11 @@ function fixedStep(method: MethodId, p: Problem, o: SolveOptions): Solution {
       default:
         throw new Error("not a fixed-step method: " + method);
     }
-    if (!yn && method !== "euler" && method !== "rk4" && rescues++ >= MAX_RESCUES) {
+    if (!yn && !isExplicit(method) && rescues++ >= MAX_RESCUES) {
       sol.failed = `Метод Ньютона не збігся (рівняння кроку не розв'язується вже ${MAX_RESCUES} разів) при t ≈ ${t.toPrecision(4)}`;
       break;
     }
-    if (!yn && method !== "euler" && method !== "rk4") {
+    if (!yn && !isExplicit(method)) {
       const g = substepGuess(C, t, y, h);
       if (g) {
         const fy = C.f(t, y);
@@ -317,7 +337,7 @@ function fixedStep(method: MethodId, p: Problem, o: SolveOptions): Solution {
         }
       }
     }
-    if (!yn && method !== "euler" && method !== "rk4") {
+    if (!yn && !isExplicit(method)) {
       const fy = C.f(t, y);
       let c: Vec, hb: number;
       if (method === "bdf2" && yPrev) {
@@ -600,6 +620,11 @@ export function solve(method: MethodId, p: Problem, o: SolveOptions = {}): Solut
 }
 
 export const isAdaptive = (m: MethodId) => m === "dopri" || m === "ros" || m === "thetaA";
+
+/** Explicit fixed-step Runge–Kutta methods: no Newton iterations, no Jacobian, no rescue strategies. */
+export function isExplicit(m: MethodId): boolean {
+  return m === "euler" || m === "rk2" || m === "rk3" || m === "rk4";
+}
 
 // ----------------------------------------------------------------------------
 // Helpers
