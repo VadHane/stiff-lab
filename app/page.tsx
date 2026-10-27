@@ -3,6 +3,7 @@ import HeroCanvas from '@/components/HeroCanvas';
 import HomeTheory from '@/components/HomeTheory';
 import { Tex } from '@/components/ui/Tex';
 import { TASKS } from '@/lib/tasks';
+import { TOOLS, type ToolMeta } from '@/lib/tools';
 import TaskProgress from '@/components/quiz/TaskProgress';
 import StiffnessAnalogy from '@/components/analogy/StiffnessAnalogy';
 
@@ -40,6 +41,12 @@ export default function Home() {
                 className='rounded-full border border-white/15 px-5 py-2.5 text-[14px] text-white/80 hover:bg-white/5'
               >
                 Що таке жорсткість?
+              </Link>
+              <Link
+                href='#tools'
+                className='rounded-full border border-white/15 px-5 py-2.5 text-[14px] text-white/80 hover:bg-white/5'
+              >
+                Інструменти
               </Link>
             </div>
           </div>
@@ -149,7 +156,64 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        <section id='tools' className='scroll-mt-20 pt-20'>
+          <div className='mb-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-[var(--accent)]'>
+            Для студентів
+          </div>
+          <h2 className='font-display mb-2 text-3xl text-white'>Інструменти</h2>
+          <p className='mb-6 max-w-3xl text-[15px] leading-relaxed text-white/60'>
+            Коли задачі пройдено — збудуйте власний метод, розв&apos;яжіть свою систему або влаштуйте
+            методам чесне змагання. На кожній сторінці задачі є також кнопки «Поділитися» і «Код Python /
+            MATLAB» з поточними параметрами.
+          </p>
+          <ToolGrid tools={TOOLS.filter((t) => t.audience === 'student')} />
+        </section>
+
+        <section id='teacher' className='scroll-mt-20 pt-20'>
+          <div className='mb-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-[var(--accent)]'>
+            Для викладача
+          </div>
+          <h2 className='font-display mb-2 text-3xl text-white'>Варіанти й методичка</h2>
+          <p className='mb-6 max-w-3xl text-[15px] leading-relaxed text-white/60'>
+            Згенеруйте кожному студентові власні параметри з ключем відповідей, дайте посилання на
+            самоперевірку і подивіться, які неточності знайдено в умовах задач.
+          </p>
+          <ToolGrid tools={TOOLS.filter((t) => t.audience === 'teacher')} />
+        </section>
       </div>
     </>
+  );
+}
+
+function ToolGrid({ tools }: { tools: ToolMeta[] }) {
+  return (
+    <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+      {tools.map((t) => (
+        <Link
+          key={t.href}
+          href={t.href}
+          className='glass group relative overflow-hidden rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 hover:border-white/20'
+          style={{ ['--accent' as string]: t.accent }}
+        >
+          <div
+            className='pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-20 blur-2xl transition-opacity group-hover:opacity-40'
+            style={{ background: t.accent }}
+          />
+          <div className='text-4xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6'>
+            {t.emoji}
+          </div>
+          <div className='font-display mt-4 text-[17px] leading-snug text-white'>{t.title}</div>
+          <div className='mt-2 text-[13.5px] leading-relaxed text-white/60'>{t.tagline}</div>
+          <div className='mt-4 flex flex-wrap gap-1.5'>
+            {t.tags.map((tag) => (
+              <span key={tag} className='rounded-full bg-white/[0.05] px-2 py-0.5 text-[11px] text-white/55'>
+                #{tag}
+              </span>
+            ))}
+          </div>
+        </Link>
+      ))}
+    </div>
   );
 }

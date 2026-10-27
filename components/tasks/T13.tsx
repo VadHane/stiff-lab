@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo } from "react";
 import Plot from "@/components/plot/Plot";
 import GiantStepsScene from "@/components/scenes/GiantStepsScene";
 import { Card, Grid, Insight, Lab, Section, Stat, Table } from "@/components/ui/blocks";
@@ -16,6 +16,10 @@ import GpsScene from "@/components/analogy/GpsScene";
 import { Say } from "@/components/mode/Mode";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT13 } from "@/components/share/TaskExports";
+import { intIn, useUrlNum } from "@/components/share/TaskUrl";
+import { codecs, useUrlState } from "@/lib/url-state";
 import { duration } from "@/lib/relatable";
 
 interface Cfg {
@@ -179,11 +183,11 @@ function jumpShift(t: number[], y: number[][], ref: { t: number[]; y: number[][]
 }
 
 export default function T13() {
-  const [pid, setPid] = useState("rob");
-  const [Ti, setTi] = useState(1);
-  const [rtol, setRtol] = useState(1e-3);
-  const [theta, setTheta] = useState(0.55);
-  const [showDop, setShowDop] = useState(true);
+  const [pid, setPid] = useUrlState("p", "rob", codecs.enum(PROBLEMS.map((p) => p.id)));
+  const [Ti, setTi] = useUrlState("Ti", 1, intIn(0, 2));
+  const [rtol, setRtol] = useUrlNum("rtol", 1e-3, 1e-6, 1e-2);
+  const [theta, setTheta] = useUrlNum("theta", 0.55, 0.5, 1);
+  const [showDop, setShowDop] = useUrlState("dop", true);
   const cfg = PROBLEMS.find((p) => p.id === pid)!;
   const T = cfg.Ts[Math.min(Ti, cfg.Ts.length - 1)];
   const dT = useDeferredValue(T);
@@ -191,6 +195,7 @@ export default function T13() {
   const dth = useDeferredValue(theta);
   const dcfg = useDeferredValue(cfg);
   const pb = usePlayback(16);
+  useTaskExport(exportT13({ pid, T, rtol, atolF: cfg.atolF, theta, showDop }));
 
   const problem: Problem = useMemo(() => ({ ...dcfg.problem, T: dT }), [dcfg, dT]);
   const ci = dcfg.comps.map((c) => c.i);

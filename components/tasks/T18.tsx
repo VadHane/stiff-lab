@@ -22,6 +22,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT18 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 import { plural } from "@/lib/relatable";
 
 const ALL: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "trap", "theta", "bdf2", "dopri", "ros"];
@@ -176,14 +180,28 @@ function periodOf(sol: Solution, A: number) {
 }
 
 export default function T18() {
-  const [P, setP] = useState<Params>({ A: 50, B: 80, u10: 50, u20: 80, T: 10 });
-  const [h, setH] = useState(0.1);
-  const [tol, setTol] = useState(1e-4);
-  const [methods, setMethods] = useState<MethodId[]>(["euler", "ieuler", "trap", "bdf2", "ros"]);
+  // the parameters live in the address one by one (?A=1&B=3&u1=1&u2=1&T=50), the page works with the object P
+  const [pA, setA] = useUrlNum("A", 50, 0.2, 60);
+  const [pB, setB] = useUrlNum("B", 80, 0.5, 150);
+  const [u10, setU10] = useUrlNum("u1", 50, 0, 200);
+  const [u20, setU20] = useUrlNum("u2", 80, 0, 200);
+  const [Tend, setTend] = useUrlNum("T", 10, 1, 300);
+  const P = useMemo<Params>(() => ({ A: pA, B: pB, u10, u20, T: Tend }), [pA, pB, u10, u20, Tend]);
+  const setP = (q: Params) => {
+    setA(q.A);
+    setB(q.B);
+    setU10(q.u10);
+    setU20(q.u20);
+    setTend(q.T);
+  };
+  const [h, setH] = useUrlNum("h", 0.1, 0.001, 0.5);
+  const [tol, setTol] = useUrlNum("rtol", 1e-4, 1e-8, 1e-2);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["euler", "ieuler", "trap", "bdf2", "ros"], methodsIn(ALL));
   const dP = useDeferredValue(P);
   const dh = useDeferredValue(h);
   const dtol = useDeferredValue(tol);
-  const set = (k: keyof Params) => (v: number) => setP((p) => ({ ...p, [k]: v }));
+  const set = (k: keyof Params) => ({ A: setA, B: setB, u10: setU10, u20: setU20, T: setTend })[k];
+  useTaskExport(exportT18({ ...P, h: effectiveH(h, P.T), tol, methods }));
   const preset = PRESETS.find((q) => q.A === P.A && q.B === P.B && q.u10 === P.u10 && q.u20 === P.u20 && q.T === P.T)?.key ?? "";
 
   const problem = useMemo(() => brusselator(dP), [dP]);

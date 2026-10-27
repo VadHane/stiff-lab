@@ -13,6 +13,10 @@ import { Card, Grid, Insight, Lab, Section, Stat, Table } from "@/components/ui/
 import { Chips, MethodPicker, Slider, Toggle } from "@/components/ui/controls";
 import { PlaybackBar, usePlayback } from "@/components/ui/Playback";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportLorenz } from "@/components/share/TaskExports";
+import { intIn, methodsIn, numOneOf, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 import { Tex } from "@/components/ui/Tex";
 import { lyapunov } from "@/lib/chaos-tools";
 import { fmt, fmtMs } from "@/lib/format";
@@ -221,18 +225,18 @@ function classifyRegime(fp: FixedPoints, sol: Solution, T: number, nDistinct: nu
 
 // ---------------------------------------------------------------------------------------------------------------------
 export default function TLorenz() {
-  const [r, setR] = useState(28.5);
-  const [sig, setSig] = useState(10);
-  const [b, setB] = useState(8 / 3);
-  const [T, setT] = useState(25);
-  const [h, setH] = useState(0.01);
-  const [rtol, setRtol] = useState(1e-6);
-  const [delta, setDelta] = useState(1e-6);
-  const [start, setStart] = useState(0);
-  const [methods, setMethods] = useState<MethodId[]>(["rk2", "rk3", "rk4", "dopri"]);
+  const [r, setR] = useUrlNum("r", 28.5, 0, 120);
+  const [sig, setSig] = useUrlNum("sigma", 10, 1, 20);
+  const [b, setB] = useUrlNum("b", 8 / 3, 0.5, 5);
+  const [T, setT] = useUrlNum("T", 25, 5, 50);
+  const [h, setH] = useUrlNum("h", 0.01, 0.002, 0.05);
+  const [rtol, setRtol] = useUrlNum("rtol", 1e-6, 1e-9, 1e-3);
+  const [delta, setDelta] = useUrlNum("delta", 1e-6, 1e-12, 1e-2);
+  const [start, setStart] = useUrlState("start", 0, intIn(0, 1));
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["rk2", "rk3", "rk4", "dopri"], methodsIn(ALL));
   const [showTwin, setShowTwin] = useState(true);
-  const [literal, setLiteral] = useState(false);
-  const [Tconv, setTconv] = useState(0.5);
+  const [literal, setLiteral] = useUrlState("lit", false);
+  const [Tconv, setTconv] = useUrlState("Tc", 0.5, numOneOf([0.5, 1, 2]));
 
   const dr = useDeferredValue(r);
   const dSig = useDeferredValue(sig);
@@ -243,6 +247,7 @@ export default function TLorenz() {
   const dDelta = useDeferredValue(delta);
   const dLiteral = useDeferredValue(literal);
   const dTconv = useDeferredValue(Tconv);
+  useTaskExport(exportLorenz({ literal, start, sig, r, b, T, h, rtol, methods }));
 
   const y0 = useMemo<number[]>(() => (start === 0 ? [...Y0_TASK] : [...Y0_ALT]), [start]);
 

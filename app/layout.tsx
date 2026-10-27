@@ -47,6 +47,18 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
               >
                 Задачі
               </Link>
+              <Link
+                href='/#tools'
+                className='hidden rounded-full px-3 py-1.5 hover:bg-white/5 hover:text-white md:block'
+              >
+                Інструменти
+              </Link>
+              <Link
+                href='/#teacher'
+                className='hidden rounded-full px-3 py-1.5 hover:bg-white/5 hover:text-white lg:block'
+              >
+                Викладачу
+              </Link>
             </nav>
           </div>
         </header>

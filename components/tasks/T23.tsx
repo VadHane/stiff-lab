@@ -16,6 +16,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT23 } from "@/components/share/TaskExports";
+import { intIn, methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const ALL: MethodId[] = ["dopri", "ros", "rk2", "rk3", "rk4", "ieuler", "trap", "thetaA"];
 const EPS_GRID = [0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.003];
@@ -85,14 +89,14 @@ function maxErrA(s: Solution, refAt: ReturnType<typeof denseOutput>): number {
 }
 
 export default function T23() {
-  const [eps, setEps] = useState(0.05);
-  const [mode, setMode] = useState(0);
-  const [b, setB] = useState(1.5);
-  const [c, setC] = useState(0.84);
-  const [T, setT] = useState(20);
-  const [h, setH] = useState(0.005);
+  const [eps, setEps] = useUrlNum("eps", 0.05, 0.003, 0.3);
+  const [mode, setMode] = useUrlState("mode", 0, intIn(0, MODES.length - 1));
+  const [b, setB] = useUrlNum("b", 1.5, 0, 3);
+  const [c, setC] = useUrlNum("c", 0.84, 0, 3);
+  const [T, setT] = useUrlNum("T", 20, 2, 40);
+  const [h, setH] = useUrlNum("h", 0.005, 0.0005, 0.2);
   const [zoom, setZoom] = useState(0);
-  const [methods, setMethods] = useState<MethodId[]>(["dopri", "ros", "rk4", "ieuler"]);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["dopri", "ros", "rk4", "ieuler"], methodsIn(ALL));
   const [pgId, setPgId] = useState(0);
   const pgOpt = PG_OPTS[pgId];
   const pgF = useMemo(() => {
@@ -112,6 +116,7 @@ export default function T23() {
   const dC = useDeferredValue(c);
   const dT = useDeferredValue(T);
   const dH = useDeferredValue(h);
+  useTaskExport(exportT23({ mode, eps, b, c, T, h, methods }));
 
   const problem = useMemo(() => system(dEps, dMode, dB, dC, dT), [dEps, dMode, dB, dC, dT]);
   const ref = useMemo(() => solve("dopri", problem, { rtol: 1e-10, atol: 1e-12, maxSteps: 800000 }), [problem]);

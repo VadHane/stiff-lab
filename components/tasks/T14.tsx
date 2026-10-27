@@ -19,6 +19,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT14 } from "@/components/share/TaskExports";
+import { methodsIn, numOneOf, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const W0 = 0.64;
 const MU1 = [0.1, 0.2, 0.5, 1, 1.5, 2];
@@ -92,11 +96,11 @@ function runMethod(m: MethodId, p: Problem, h: number): Solution {
 
 export default function T14() {
   const [field1, setField1] = useState(1);
-  const [aSel, setASel] = useState(40);
-  const [mu, setMu] = useState(5);
-  const [w, setW] = useState(W0);
-  const [h, setH] = useState(0.01);
-  const [methods, setMethods] = useState<MethodId[]>(["rk4", "ieuler", "dopri", "ros"]);
+  const [aSel, setASel] = useUrlState("a", 40, numOneOf([10, 20, 40, 0]));
+  const [mu, setMu] = useUrlNum("mu", 5, 0.1, 1000);
+  const [w, setW] = useUrlNum("w", W0, 0.2, 2);
+  const [h, setH] = useUrlNum("h", 0.01, 0.0005, 0.5);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["rk4", "ieuler", "dopri", "ros"], methodsIn(ALL));
   const [pgMu, setPgMu] = useState(2);
   const pgF = useMemo(() => (_t: number, y: number[]) => [y[1], pgMu * (1 - y[0] * y[0]) * y[1] - W0 * W0 * y[0]], [pgMu]);
   const pgInit = useMemo(() => [1, 2], []);
@@ -113,6 +117,7 @@ export default function T14() {
   const dH = useDeferredValue(h);
   const dA = useDeferredValue(aSel);
   const T = dA > 0 ? dA : 2 * periodGuess(dMu, dW);
+  useTaskExport(exportT14({ mu, w, T: aSel > 0 ? aSel : 2 * periodGuess(mu, w), h, methods }));
 
   // [0,120] so that even μ = 0.1 (slowest attraction: the deviation from the cycle decays ≈ e^{−μt}) has settled on the cycle in the last quarter.
   const family = useMemo(

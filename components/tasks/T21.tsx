@@ -19,6 +19,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT21 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const ALL: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "theta", "trap", "bdf2"];
 const H_LIST = [0.005, 0.01, 0.02, 0.03, 0.05];
@@ -132,15 +136,27 @@ const comfort = (z: number) =>
             : { t: "дубова 🪵", tone: "warn" as const };
 
 export default function T21() {
-  const [p, setP] = useState<Params>(BOOK);
-  const [h, setH] = useState(0.02);
-  const [T, setT] = useState(3);
-  const [methods, setMethods] = useState<MethodId[]>(["euler", "rk4", "ieuler", "trap"]);
+  // the parameters live in the address one by one (?mass=5&c=60&k=1500&u0=0.5), the page works with the object p
+  const [pm, setPm] = useUrlNum("mass", BOOK.m, 0.2, 10);
+  const [pc, setPc] = useUrlNum("c", BOOK.c, 0.1, 300);
+  const [pk, setPk] = useUrlNum("k", BOOK.k, 50, 20000);
+  const [pu0, setPu0] = useUrlNum("u0", BOOK.u0, 0.05, 1);
+  const p = useMemo<Params>(() => ({ m: pm, c: pc, k: pk, u0: pu0 }), [pm, pc, pk, pu0]);
+  const setP = (q: Params) => {
+    setPm(q.m);
+    setPc(q.c);
+    setPk(q.k);
+    setPu0(q.u0);
+  };
+  const [h, setH] = useUrlNum("h", 0.02, 0.001, 0.08);
+  const [T, setT] = useUrlNum("T", 3, 0.5, 10);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["euler", "rk4", "ieuler", "trap"], methodsIn(ALL));
   const [hero, setHero] = useState<MethodId>("euler");
   const dp = useDeferredValue(p);
   const dh = useDeferredValue(h);
   const dT = useDeferredValue(T);
   const pb = usePlayback(10);
+  useTaskExport(exportT21({ ...p, T, h, methods }));
 
   const a = dp.c / (2 * dp.m);
   const w2 = dp.k / dp.m;

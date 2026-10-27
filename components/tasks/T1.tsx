@@ -17,6 +17,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT1 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const A = [
   [-1001, 1],
@@ -44,12 +48,13 @@ const STAB_LEFT = -22.5;
 const STAB_RANGE_MAX = 24; // на дуже вузьких екранах далекі точки притискаються до краю з підписом справжнього z
 
 export default function T1() {
-  const [h, setH] = useState(0.002);
-  const [T, setT] = useState(5);
-  const [methods, setMethods] = useState<MethodId[]>(["euler", "ieuler", "theta", "bdf2"]);
+  const [h, setH] = useUrlNum("h", 0.002, 0.0002, 0.03);
+  const [T, setT] = useUrlNum("T", 5, 1, 20);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["euler", "ieuler", "theta", "bdf2"], methodsIn(ALL));
   const [ci, setCi] = useState(0);
   const dh = useDeferredValue(h);
   const dT = useDeferredValue(T);
+  useTaskExport(exportT1({ h, T, methods }));
 
   const problem: Problem = useMemo(
     () => ({

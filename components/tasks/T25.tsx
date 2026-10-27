@@ -18,6 +18,10 @@ import IslandRescueScene from "@/components/analogy/IslandRescueScene";
 import { Say } from "@/components/mode/Mode";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT25 } from "@/components/share/TaskExports";
+import { methodsIn, numsIn, tidy, useUrlNum } from "@/components/share/TaskUrl";
+import { codecs, useUrlState } from "@/lib/url-state";
 
 type Form = "orig" | "log";
 const ALL: MethodId[] = ["bdf2", "ieuler", "trap", "theta", "euler", "rk2", "rk3", "rk4", "ros", "dopri"];
@@ -335,19 +339,21 @@ function Bdf2OrigWhy({ simple = false }: { simple?: boolean }) {
 }
 
 export default function T25() {
-  const [form, setForm] = useState<Form>("log");
-  const [eps, setEps] = useState(0.01);
-  const [y0, setY0] = useState<number[]>([2, 10, 0.1]);
-  const [T, setT] = useState(500);
-  const [h, setH] = useState(0.2);
-  const [tol, setTol] = useState(1e-4);
-  const [methods, setMethods] = useState<MethodId[]>(["bdf2", "rk4", "ros"]);
+  const [form, setForm] = useUrlState<Form>("form", "log", codecs.enum(["orig", "log"] as const));
+  const [eps, setEps] = useUrlNum("eps", 0.01, 0.001, 0.3);
+  const [y0, setY0raw] = useUrlState<number[]>("y0", [2, 10, 0.1], numsIn([[0.05, 4], [0.1, 20], [0.05, 2]]));
+  const setY0 = (v: number[]) => setY0raw(v.map(tidy));
+  const [T, setT] = useUrlNum("T", 500, 50, 1000);
+  const [h, setH] = useUrlNum("h", 0.2, 0.02, 1);
+  const [tol, setTol] = useUrlNum("rtol", 1e-4, 1e-7, 1e-2);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["bdf2", "rk4", "ros"], methodsIn(ALL));
   const de = useDeferredValue(eps);
   const dy0 = useDeferredValue(y0);
   const dT = useDeferredValue(T);
   const dh = useDeferredValue(h);
   const dtol = useDeferredValue(tol);
   const ensureMethods = (...ms: MethodId[]) => setMethods((cur) => [...cur, ...ms.filter((m) => !cur.includes(m))]);
+  useTaskExport(exportT25({ form, eps, y0, T, h, tol, methods }));
   const taskSetup = () => {
     setY0([2, 10, 0.1]);
     setEps(0.01);

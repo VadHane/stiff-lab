@@ -18,6 +18,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT2 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const ALL: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "theta", "trap", "bdf2"];
 const H_LIST = [0.01, 0.02, 0.05];
@@ -52,10 +56,10 @@ function lateMax(s: Solution, err: number[][], tl: number) {
 }
 
 export default function T2() {
-  const [h, setH] = useState(0.02);
-  const [eps, setEps] = useState(EPS0);
-  const [d, setD] = useState(D0);
-  const [methods, setMethods] = useState<MethodId[]>(["euler", "ieuler", "theta", "trap"]);
+  const [h, setH] = useUrlNum("h", 0.02, 0.001, 0.1);
+  const [eps, setEps] = useUrlNum("eps", EPS0, 1e-4, 0.3);
+  const [d, setD] = useUrlNum("d", D0, -2, 1);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["euler", "ieuler", "theta", "trap"], methodsIn(ALL));
   const [ci, setCi] = useState(0);
   const [book, setBook] = useState(true);
   const dh = useDeferredValue(h);
@@ -63,6 +67,7 @@ export default function T2() {
   const dd = useDeferredValue(d);
   const T = 10;
   const pb = usePlayback(12);
+  useTaskExport(exportT2({ h, eps, d, methods }));
 
   const exact = useMemo(() => exactOf(dd, de), [dd, de]);
   const problem: Problem = useMemo(

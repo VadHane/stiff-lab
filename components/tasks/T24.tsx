@@ -17,6 +17,10 @@ import ChameleonScene from "@/components/analogy/ChameleonScene";
 import { Say } from "@/components/mode/Mode";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT24 } from "@/components/share/TaskExports";
+import { methodsIn, numOneOf, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const S = 77.27,
   Q = 8.375e-6,
@@ -71,15 +75,16 @@ function minOf(a: ArrayLike<number>): number {
 }
 
 export default function T24() {
-  const [T, setT] = useState(100);
-  const [h, setH] = useState(0.004);
-  const [tol, setTol] = useState(1e-4);
-  const [methods, setMethods] = useState<MethodId[]>(["ros", "dopri", "thetaA", "bdf2"]);
+  const [T, setT] = useUrlState("T", 100, numOneOf(T_LIST));
+  const [h, setH] = useUrlNum("h", 0.004, 5e-4, 0.1);
+  const [tol, setTol] = useUrlNum("rtol", 1e-4, 1e-7, 1e-2);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["ros", "dopri", "thetaA", "bdf2"], methodsIn(ALL));
   const [ci, setCi] = useState(0);
   const dh = useDeferredValue(h);
   const dtol = useDeferredValue(tol);
   const hEff = Math.max(dh, T / MAX_N);
   const ensureMethods = (...ms: MethodId[]) => setMethods((cur) => [...cur, ...ms.filter((m) => !cur.includes(m))]);
+  useTaskExport(exportT24({ T, h: Math.max(h, T / MAX_N), tol, methods }));
 
   const problem = useMemo(() => prob(T), [T]);
   const ref = useMemo(() => cached(`T24|ref|${T}`, () => solve("ros", prob(T), { rtol: 1e-8, atol: 1e-10, maxSteps: 400000 })), [T]);

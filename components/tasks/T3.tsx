@@ -19,6 +19,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT3 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const A = [
   [1525, 1350],
@@ -102,14 +106,15 @@ const eigenUnderlay = (ctx: CanvasRenderingContext2D, tr: Transform) => {
 };
 
 export default function T3() {
-  const [h, setH] = useState(0.004);
-  const [T, setT] = useState(10);
-  const [methods, setMethods] = useState<MethodId[]>(["euler", "rk4", "ieuler", "trap"]);
+  const [h, setH] = useUrlNum("h", 0.004, 0.0002, 0.05);
+  const [T, setT] = useUrlNum("T", 10, 0.1, 10);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["euler", "rk4", "ieuler", "trap"], methodsIn(ALL));
   const [ci, setCi] = useState(0);
   const [hero, setHero] = useState<MethodId>("euler");
   const dh = useDeferredValue(h);
   const dT = useDeferredValue(T);
   const pb = usePlayback(14);
+  useTaskExport(exportT3({ h, T, methods }));
 
   const problem: Problem = useMemo(
     () => ({

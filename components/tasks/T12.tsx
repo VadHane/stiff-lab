@@ -17,6 +17,10 @@ import StepDebugger, { type DebuggerView } from "@/components/debugger/StepDebug
 import { Say } from "@/components/mode/Mode";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT12 } from "@/components/share/TaskExports";
+import { intIn, methodsIn, numOneOf, useUrlNum } from "@/components/share/TaskUrl";
+import { codecs, useUrlState } from "@/lib/url-state";
 
 const SHORT: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "theta", "trap", "bdf2", "ros", "dopri"];
 const LONG: MethodId[] = ["ros", "thetaA", "dopri"];
@@ -99,20 +103,21 @@ function relErr(s: Solution, ref: Solution) {
 const tone = (s: Solution, e: number) => (s.failed || !(e < 0.5) ? "bad" : e > 1e-2 ? "warn" : "good");
 
 export default function T12() {
-  const [ic, setIc] = useState(0);
-  const [mode, setMode] = useState<"short" | "long">("short");
-  const [h, setH] = useState(1e-4);
-  const [T, setT] = useState(10);
-  const [Tl, setTl] = useState(4e5);
-  const [tol, setTol] = useState(1e-4);
-  const [mShort, setMShort] = useState<MethodId[]>(["euler", "rk4", "bdf2", "ros"]);
-  const [mLong, setMLong] = useState<MethodId[]>(["ros", "thetaA", "dopri"]);
+  const [ic, setIc] = useUrlState("ic", 0, intIn(0, IC.length - 1));
+  const [mode, setMode] = useUrlState<"short" | "long">("mode", "short", codecs.enum(["short", "long"] as const));
+  const [h, setH] = useUrlNum("h", 1e-4, 1e-4, 0.2);
+  const [T, setT] = useUrlNum("T", 10, 0.5, 40);
+  const [Tl, setTl] = useUrlState("Tl", 4e5, numOneOf(LONG_T));
+  const [tol, setTol] = useUrlNum("rtol", 1e-4, 1e-7, 1e-2);
+  const [mShort, setMShort] = useUrlState<MethodId[]>("m", ["euler", "rk4", "bdf2", "ros"], methodsIn(SHORT));
+  const [mLong, setMLong] = useUrlState<MethodId[]>("ml", ["ros", "thetaA", "dopri"], methodsIn(LONG));
   const [table, setTable] = useState<null | { s: Solution; e: number }[][]>(null);
   const dh = useDeferredValue(h);
   const dT = useDeferredValue(T);
   const dtol = useDeferredValue(tol);
   const ensureShort = (...ms: MethodId[]) => setMShort((cur) => [...cur, ...ms.filter((m) => !cur.includes(m))]);
   const ensureLong = (...ms: MethodId[]) => setMLong((cur) => [...cur, ...ms.filter((m) => !cur.includes(m))]);
+  useTaskExport(exportT12({ ic, mode, h: Math.max(h, T / MAX_N), T, Tl, tol, mShort, mLong }));
 
   const Tcur = mode === "short" ? dT : Tl;
   const ref = useMemo(() => reference(ic, Tcur), [ic, Tcur]);

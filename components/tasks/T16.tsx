@@ -18,6 +18,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT16 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const W_BOOK = (2 * Math.PI) / 10;
 const ALL: MethodId[] = ["ros", "dopri", "rk2", "rk3", "rk4", "euler"];
@@ -128,15 +132,15 @@ function gcdFrac(x: number, maxDen = 12): [number, number] {
 }
 
 export default function T16() {
-  const [mu, setMu] = useState(8.5);
-  const [a, setA] = useState(0.5);
-  const [w, setW] = useState(W_BOOK);
-  const [T, setT] = useState(40);
-  const [h, setH] = useState(0.01);
-  const [theta0, setTheta0] = useState(0);
-  const [delta, setDelta] = useState(1e-8);
+  const [mu, setMu] = useUrlNum("mu", 8.5, 0.5, 15);
+  const [a, setA] = useUrlNum("a", 0.5, 0, 6);
+  const [w, setW] = useUrlNum("w", W_BOOK, 0.2, 3);
+  const [T, setT] = useUrlNum("T", 40, 20, 1000);
+  const [h, setH] = useUrlNum("h", 0.01, 0.001, 0.2);
+  const [theta0, setTheta0] = useUrlNum("th0", 0, 0, 6.28);
+  const [delta, setDelta] = useUrlNum("delta", 1e-8, 1e-12, 1e-2);
   const [win, setWin] = useState(0);
-  const [methods, setMethods] = useState<MethodId[]>(["ros", "dopri", "rk4"]);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["ros", "dopri", "rk4"], methodsIn(ALL));
   const [pgId, setPgId] = useState(0);
   const pg = PRESETS[pgId];
   // sandbox state (u, u′, θ) with θ′ = 1: the forcing phase keeps running when the swing is clicked or kicked
@@ -155,6 +159,7 @@ export default function T16() {
   const dTheta = useDeferredValue(theta0);
   const dDelta = useDeferredValue(delta);
   const Tp = (2 * Math.PI) / dW;
+  useTaskExport(exportT16({ mu, a, w, T, h, methods }));
 
   const problem = useMemo(() => forced(dMu, dA, dW, dT), [dMu, dA, dW, dT]);
   const ref = useMemo(() => solve("dopri", problem, { rtol: 1e-9, atol: 1e-11, maxSteps: 600000 }), [problem]);

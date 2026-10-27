@@ -20,6 +20,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT22 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 import { plural } from "@/lib/relatable";
 
 const ALL: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "trap", "theta", "bdf2", "dopri", "ros"];
@@ -165,16 +169,28 @@ function dbgImplicitEuler() {
 }
 
 export default function T22() {
-  const [P, setP] = useState<Params>(BASE);
+  // the parameters live in the address one by one (?R=2e6&T=20), the page works with the object P
+  const [pR, setR] = useUrlNum("R", BASE.R, 1e3, 1e7);
+  const [pL, setL] = useUrlNum("L", BASE.L, 0.5, 200);
+  const [pC, setC] = useUrlNum("C", BASE.C, 0.05, 1000);
+  const [pE, setE] = useUrlNum("E", BASE.E, 0, 100);
+  const [pw, setW] = useUrlNum("w", BASE.w, 0.05, 50);
+  const [pq0, setQ0] = useUrlNum("q0", BASE.q0, -10, 10);
+  const [pv0, setV0] = useUrlNum("v0", BASE.v0, -10, 10);
+  const [pT, setT] = useUrlNum("T", BASE.T, 1, 100);
+  const P = useMemo<Params>(() => ({ R: pR, L: pL, C: pC, E: pE, w: pw, q0: pq0, v0: pv0, T: pT }), [pR, pL, pC, pE, pw, pq0, pv0, pT]);
+  const setters = { R: setR, L: setL, C: setC, E: setE, w: setW, q0: setQ0, v0: setV0, T: setT };
+  const setP = (q: Params) => (Object.keys(setters) as (keyof Params)[]).forEach((k) => setters[k](q[k]));
   const dbgIE = useMemo(dbgImplicitEuler, []);
-  const [h, setH] = useState(0.1);
-  const [tol, setTol] = useState(0.01);
-  const [methods, setMethods] = useState<MethodId[]>(["euler", "rk4", "ieuler", "trap", "dopri", "ros"]);
+  const [h, setH] = useUrlNum("h", 0.1, 0.002, 0.5);
+  const [tol, setTol] = useUrlNum("rtol", 0.01, 1e-8, 0.1);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["euler", "rk4", "ieuler", "trap", "dopri", "ros"], methodsIn(ALL));
   const dP = useDeferredValue(P);
   const dh = useDeferredValue(h);
   const dtol = useDeferredValue(tol);
-  const set = (k: keyof Params) => (v: number) => setP((p) => ({ ...p, [k]: v }));
+  const set = (k: keyof Params) => setters[k];
   const preset = PRESETS.find((x) => (Object.keys(x.p) as (keyof Params)[]).every((k) => x.p[k] === P[k]))?.key ?? "";
+  useTaskExport(exportT22({ preset, ...P, h, tol, methods }));
 
   const ex = useMemo(() => exactRLC(dP), [dP]);
   const problem = useMemo(() => rlcProblem(dP), [dP]);

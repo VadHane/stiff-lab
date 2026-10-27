@@ -20,6 +20,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT5 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const ALL: MethodId[] = ["rk2", "rk3", "rk4", "dopri", "ros"];
 const EXPL_BOUND: Partial<Record<MethodId, string>> = { rk2: "2", rk3: "≈ 2.51", rk4: "≈ 2.79" };
@@ -122,13 +126,13 @@ function fixedPoint(a: number, b: number, c: number): [number, number, number] {
 }
 
 export default function T5() {
-  const [a, setA] = useState(0.15);
-  const [b, setB] = useState(0.4);
-  const [c, setC] = useState(8.5);
-  const [T, setT] = useState(50);
-  const [h, setH] = useState(0.01);
-  const [delta, setDelta] = useState(1e-6);
-  const [methods, setMethods] = useState<MethodId[]>(["rk4", "dopri", "ros"]);
+  const [a, setA] = useUrlNum("a", 0.15, 0.05, 0.3);
+  const [b, setB] = useUrlNum("b", 0.4, 0.05, 1);
+  const [c, setC] = useUrlNum("c", 8.5, 2, 12);
+  const [T, setT] = useUrlNum("T", 50, 20, 500);
+  const [h, setH] = useUrlNum("h", 0.01, 0.002, 0.3);
+  const [delta, setDelta] = useUrlNum("delta", 1e-6, 1e-12, 1e-2);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["rk4", "dopri", "ros"], methodsIn(ALL));
   const [showTwin, setShowTwin] = useState(true);
 
   const da = useDeferredValue(a);
@@ -137,6 +141,7 @@ export default function T5() {
   const dT = useDeferredValue(T);
   const dh = useDeferredValue(h);
   const dDelta = useDeferredValue(delta);
+  useTaskExport(exportT5({ a, b, c, T, h, methods }));
 
   const problem: Problem = useMemo(
     () => ({

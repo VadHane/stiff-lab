@@ -21,6 +21,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT20 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const ALL: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "trap", "bdf2", "dopri", "ros", "thetaA"];
 const EPS = 0.08,
@@ -107,19 +111,20 @@ const evTex = (ev: Complex[]) =>
   Math.abs(ev[0].im) > 1e-12 ? `${fmt(ev[0].re, 4)} \\pm ${fmt(Math.abs(ev[0].im), 4)}\\,i` : `${fmt(ev[0].re, 4)},\\ ${fmt(ev[1].re, 4)}`;
 
 export default function T20() {
-  const [I, setI] = useState(0.5);
-  const [T, setT] = useState(200);
-  const [V0, setV0] = useState(0.55);
-  const [W0, setW0] = useState(0.25);
-  const [h, setH] = useState(0.1);
-  const [tol, setTol] = useState(1e-3);
-  const [methods, setMethods] = useState<MethodId[]>(["euler", "dopri", "ros", "thetaA"]);
+  const [I, setI] = useUrlNum("I", 0.5, -3, 3);
+  const [T, setT] = useUrlNum("T", 200, 20, 1000);
+  const [V0, setV0] = useUrlNum("V0", 0.55, -2.5, 2.5);
+  const [W0, setW0] = useUrlNum("W0", 0.25, -2, 2.5);
+  const [h, setH] = useUrlNum("h", 0.1, 0.01, 2);
+  const [tol, setTol] = useUrlNum("rtol", 1e-3, 1e-7, 0.1);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["euler", "dopri", "ros", "thetaA"], methodsIn(ALL));
   const dI = useDeferredValue(I);
   const dT = useDeferredValue(T);
   const dV0 = useDeferredValue(V0);
   const dW0 = useDeferredValue(W0);
   const dh = useDeferredValue(h);
   const dtol = useDeferredValue(tol);
+  useTaskExport(exportT20({ I, T, V0, W0, h: effectiveH(h, T), tol, methods }));
 
   const problem = useMemo(() => fhn(dI, dT, [dV0, dW0]), [dI, dT, dV0, dW0]);
   const eq = useMemo(() => equilibrium(dI), [dI]);

@@ -18,6 +18,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT11 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const ALL: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "theta", "trap", "bdf2", "dopri", "ros"];
 // stable references for the debugger / playground: a = 6, ε = 0.05, x₀ = 1 (relaxation oscillations)
@@ -153,13 +157,13 @@ function run(m: MethodId, a: number, eps: number, x0: number, T: number, h: numb
 }
 
 export default function T11() {
-  const [a, setA] = useState(6);
-  const [eps, setEps] = useState(0.05);
-  const [x0, setX0] = useState(1);
-  const [T, setT] = useState(50);
-  const [h, setH] = useState(0.01);
-  const [tol, setTol] = useState(1e-4);
-  const [methods, setMethods] = useState<MethodId[]>(["euler", "bdf2", "dopri", "ros"]);
+  const [a, setA] = useUrlNum("a", 6, -3, 10);
+  const [eps, setEps] = useUrlNum("eps", 0.05, 0.003, 0.5);
+  const [x0, setX0] = useUrlNum("x0", 1, 0, 2);
+  const [T, setT] = useUrlNum("T", 50, 5, 60);
+  const [h, setH] = useUrlNum("h", 0.01, 0.001, 0.1);
+  const [tol, setTol] = useUrlNum("rtol", 1e-4, 1e-7, 1e-2);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["euler", "bdf2", "dopri", "ros"], methodsIn(ALL));
   const [table, setTable] = useState<null | { a: number; x0: number; T: number; h: number; tol: number; cells: { s: Solution; per: number }[][]; refPer: number[] }>(null);
   const da = useDeferredValue(a);
   const de = useDeferredValue(eps);
@@ -169,6 +173,7 @@ export default function T11() {
   const dtol = useDeferredValue(tol);
   const dh = Math.max(dh0, dT / MAX_N);
   const ensureMethods = (...ms: MethodId[]) => setMethods((cur) => [...cur, ...ms.filter((m) => !cur.includes(m))]);
+  useTaskExport(exportT11({ a, eps, x0, T, h: Math.max(h, T / MAX_N), tol, methods }));
 
   const problem = useMemo(() => makeProblem(da, de, dx0, dT), [da, de, dx0, dT]);
   const ref = useMemo(

@@ -18,6 +18,10 @@ import { Say } from "@/components/mode/Mode";
 import PhasePlayground from "@/components/playground/PhasePlayground";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT19 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 const ALL: MethodId[] = ["euler", "rk2", "rk3", "rk4", "ieuler", "theta", "trap", "bdf2", "dopri", "ros"];
 const H_LIST = [0.02, 0.01, 0.005, 0.002];
@@ -67,16 +71,30 @@ function runMethod(m: MethodId, prob: Problem, h: number): Solution {
 }
 
 export default function T19() {
-  const [par, setPar] = useState<Par>(BOOK);
-  const [h, setH] = useState(0.01);
-  const [T, setT] = useState(10);
+  // the parameters live in the address one by one (?mass=0.02&c=0.3&k=2&d=2&u0=10), the page works with the object par
+  const [pm, setPm] = useUrlNum("mass", BOOK.m, 0.001, 0.2);
+  const [pc, setPc] = useUrlNum("c", BOOK.c, 0, 2);
+  const [pk, setPk] = useUrlNum("k", BOOK.k, 0.1, 10);
+  const [pd, setPd] = useUrlNum("d", BOOK.d, 0, 10);
+  const [pu0, setPu0] = useUrlNum("u0", BOOK.u0, 0.5, 15);
+  const par = useMemo<Par>(() => ({ m: pm, c: pc, k: pk, d: pd, u0: pu0 }), [pm, pc, pk, pd, pu0]);
+  const setPar = (q: Par) => {
+    setPm(q.m);
+    setPc(q.c);
+    setPk(q.k);
+    setPd(q.d);
+    setPu0(q.u0);
+  };
+  const [h, setH] = useUrlNum("h", 0.01, 0.0005, 0.03);
+  const [T, setT] = useUrlNum("T", 10, 1, 10);
   const [win, setWin] = useState(0.6);
-  const [methods, setMethods] = useState<MethodId[]>(["euler", "rk4", "ieuler", "trap"]);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["euler", "rk4", "ieuler", "trap"], methodsIn(ALL));
 
   const dPar = useDeferredValue(par);
   const dH = useDeferredValue(h);
   const dT = useDeferredValue(T);
-  const set = (key: keyof Par) => (v: number) => setPar((p) => ({ ...p, [key]: v }));
+  const set = (key: keyof Par) => ({ m: setPm, c: setPc, k: setPk, d: setPd, u0: setPu0 })[key];
+  useTaskExport(exportT19({ ...par, T, h, methods }));
 
   const problem = useMemo(() => duffing(dPar, dT), [dPar, dT]);
   const ref = useMemo(() => solve("dopri", problem, { rtol: 1e-10, atol: 1e-12, maxSteps: 600000 }), [problem]);

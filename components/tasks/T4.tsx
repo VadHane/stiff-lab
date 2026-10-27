@@ -18,6 +18,10 @@ import StepDebugger from "@/components/debugger/StepDebugger";
 import { Say } from "@/components/mode/Mode";
 import QuizBlock from "@/components/quiz/Quiz";
 import Relatable from "@/components/ui/Relatable";
+import { useTaskExport } from "@/components/share/TaskActions";
+import { exportT4 } from "@/components/share/TaskExports";
+import { methodsIn, useUrlNum } from "@/components/share/TaskUrl";
+import { useUrlState } from "@/lib/url-state";
 
 type OneStep = "euler" | "ieuler" | "theta" | "trap" | "rk2" | "rk3" | "rk4";
 const RF: Record<OneStep, (z: number) => number> = {
@@ -72,15 +76,16 @@ const KIND: Record<Kind, { label: string; icon: string; tone: "good" | "bad" | "
 const classify = (r: number): Kind => (Math.abs(Math.abs(r) - 1) < 1e-9 ? "edge" : Math.abs(r) > 1 ? "boom" : r < 0 ? "flip" : "mono");
 
 export default function T4() {
-  const [lam, setLam] = useState(-10);
-  const [h, setH] = useState(0.1);
-  const [methods, setMethods] = useState<MethodId[]>(["euler", "ieuler", "theta"]);
+  const [lam, setLam] = useUrlNum("lam", -10, -100, -0.1);
+  const [h, setH] = useUrlNum("h", 0.1, 0.01, 1);
+  const [methods, setMethods] = useUrlState<MethodId[]>("m", ["euler", "ieuler", "theta"], methodsIn(ALL));
   const [gm, setGm] = useState<OneStep>("theta");
   const [guess, setGuess] = useState<{ key: string; kind: Kind } | null>(null);
   const [score, setScore] = useState({ ok: 0, all: 0 });
   const dl = useDeferredValue(lam);
   const dh = useDeferredValue(h);
   const pb = usePlayback(9);
+  useTaskExport(exportT4({ lam, h, methods }));
   const [dbgLam, setDbgLam] = useState(-20);
   const dbgF = useMemo(() => (_t: number, y: number[]) => [dbgLam * y[0]], [dbgLam]);
   const want = (m: MethodId) => setMethods((ms) => (ms.includes(m) ? ms : [...ms, m]));
